@@ -1,16 +1,56 @@
-# This is a sample Python script.
+import cv2 as cv
+import numpy as np
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+img = cv.imread('Images/coins_evenlyLit.png')
+output = np.zeros((img.shape[0], img.shape[1]), dtype=np.uint8)
+intensityImg = np.zeros((img.shape[0], img.shape[1]), dtype=np.uint8)
+whiteImg = np.zeros((img.shape[0], img.shape[1]), dtype=np.uint8)
+whiteImg.fill(255)
+kernel = np.ones((3, 3), np.uint8)
 
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+def calculateIntensity(img):
+    bgrMean = img[0] / 3 + img[1] / 3 + img[2] / 3
+    intensity = bgrMean / 255
+    return (intensity)
 
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
+def makeGrayscale(img):
+    for y, row in enumerate(img):
+        for x, pixel in enumerate(row):
+            output[y, x] = pixel[2] / 3 + pixel[1] / 3 + pixel[0] / 3
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+
+def areSame(A, B):
+    result = True
+    for i, row in enumerate(A):
+        for j, pixel in enumerate(A):
+            if (A[i][j] != B[i][j]):
+                result = False
+    return result
+
+
+def applyIntensity(img):
+    #for y, row in enumerate(img):
+    #    for x, pixel in enumerate(row):
+    #        if calculateIntensity(img[y, x]) < 0.5:
+    #            intensityImg[y, x] = 255
+    #        else:
+    #            intensityImg[y, x] = 0
+
+    ret, thresh = cv.threshold(img, 127, 255, 0)
+    image, contours, hierarchy = cv.findContours(thresh, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
+
+    opening = cv.morphologyEx(thresh, cv.MORPH_OPEN, kernel, iterations=1)
+    closing = cv.morphologyEx(opening, cv.MORPH_CLOSE, kernel, iterations=10)
+
+    image, contours, hierarchy = cv.findContours(closing, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    cv.drawContours(closing, contours, -1, (0, 255, 0), 10)
+
+    cv.imshow('Image', closing)
+    print("NUMBER OF CUNTS: " + str(len(contours)))
+    cv.waitKey(0)
+    cv.destroyAllWindows()
+
+
+applyIntensity(img)
