@@ -17,7 +17,7 @@ def calculateIntensity(img):
 
 def makeGrayscale(img):
     output = np.zeros((img.shape[0],img.shape[1]), dtype = np.uint8)
-    output[:,:] = img[:,:,0]/3 + img[:,:,1]/3 + img[:,:,2]/3
+    output[:,:] = img[:,:,0]*0.114 + img[:,:,1]*0.587 + img[:,:,2]*0.299
     return output
 
 
