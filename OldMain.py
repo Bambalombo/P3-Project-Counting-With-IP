@@ -1,5 +1,4 @@
-import cv2 as cv
-import numpy as np
+
 
 img = cv.imread('Images/coins_evenlyLit.png')
 output = np.zeros((img.shape[0], img.shape[1]), dtype=np.uint8)
@@ -9,17 +8,10 @@ whiteImg.fill(255)
 kernel = np.ones((3, 3), np.uint8)
 
 
-def calculateIntensity(img):
-    bgrMean = img[0] / 3 + img[1] / 3 + img[2] / 3
-    intensity = bgrMean / 255
-    return (intensity)
 
 
 
-def makeGrayscale(img):
-    output = np.zeros((img.shape[0],img.shape[1]), dtype = np.uint8)
-    output[:,:] = img[:,:,0]*0.114 + img[:,:,1]*0.587 + img[:,:,2]*0.299
-    return output
+
 
 
 def applyIntensity(img):
