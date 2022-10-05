@@ -30,18 +30,18 @@ def applyIntensity(img):
     #            intensityImg[y, x] = 0
 
     ret, thresh = cv.threshold(img, 127, 255, 0)
-    #image, contours, hierarchy = cv.findContours(thresh, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
+    image, contours, hierarchy = cv.findContours(thresh, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
 
     opening = cv.morphologyEx(thresh, cv.MORPH_OPEN, kernel, iterations=1)
     closing = cv.morphologyEx(opening, cv.MORPH_CLOSE, kernel, iterations=10)
 
-   # image, contours, hierarchy = cv.findContours(closing, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-   #cv.drawContours(closing, contours, -1, (0, 255, 0), 10)
+    image, contours, hierarchy = cv.findContours(closing, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    cv.drawContours(closing, contours, -1, (0, 255, 0), 10)
     print(areSame(img,makeGrayscale(img)))
     output = makeGrayscale(img)
     cv.imshow('input',img)
     cv.imshow('output', output)
-    #print("NUMBER OF CUNTS: " + str(len(contours)))
+    print("NUMBER OF CUNTS: " + str(len(contours)))
     cv.waitKey(0)
     cv.destroyAllWindows()
 
