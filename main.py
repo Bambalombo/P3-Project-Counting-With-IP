@@ -32,13 +32,15 @@ def makeImageBinary(img,threshold):
     :param img:
     :param threshold:
     :return black and white output:
-    -------
-        this is what the return returns
 
     Funktion der gør pixels med en intensity værdi mindre end threshold sorte
     og pixels med en intensity værdi større end threshold hvide
+    Skal tage imod et bgr image
+
+    Linus er den bedste 😎
+    -------
     """
-    output = np.zeros(img.shape[0], img.shape[1], dtype= np.uint8)
+    output = np.zeros((img.shape[0], img.shape[1]), dtype= np.uint8)
     for y, row in enumerate(img):
         for x, pixel in enumerate(row):
             if calculateIntensity(img[y, x]) < threshold:
@@ -47,3 +49,11 @@ def makeImageBinary(img,threshold):
                 output[y, x] = 0
     return output
 
+grayscaleImage = makeGrayscale(img)
+binaryImage = makeImageBinary(img, 0.5)
+
+cv.imshow('original',img)
+cv.imshow('grayscale', grayscaleImage)
+cv.imshow('binary', binaryImage)
+cv.waitKey(0)
+cv.destroyAllWindows()
