@@ -16,9 +16,9 @@ def calculateIntensity(img):
 
 
 def makeGrayscale(img):
-    for y, row in enumerate(img):
-        for x, pixel in enumerate(row):
-            output[y, x] = pixel[2] / 3 + pixel[1] / 3 + pixel[0] / 3
+    output = np.zeros((img.shape[0],img.shape[1]), dtype = np.uint8)
+    output[:,:] = img[:,:,0]/3 + img[:,:,1]/3 + img[:,:,2]/3
+    return output
 
 
 def areSame(A, B):
@@ -46,8 +46,9 @@ def applyIntensity(img):
 
     image, contours, hierarchy = cv.findContours(closing, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     cv.drawContours(closing, contours, -1, (0, 255, 0), 10)
-
-    cv.imshow('Image', closing)
+    output = makeGrayscale(img)
+    cv.imshow('input',img)
+    cv.imshow('output', output)
     print("NUMBER OF CUNTS: " + str(len(contours)))
     cv.waitKey(0)
     cv.destroyAllWindows()
