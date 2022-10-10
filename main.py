@@ -60,12 +60,9 @@ def morphClose(img):
 #grayscaleImage = makeGrayscale(picture)
 binaryImage = makeImageBinaryIntensityThreshold(coinPicture, 0.5)
 processedPicture = morphClose(binaryImage)
-#binaryFromColor = makeImageBinaryRGBThreshold(fyrfadPicture,25,50,60,80,30,55)
-
 
 #cv.imshow('original',picture)
 #cv.imshow('grayscale', grayscaleImage)
 cv.imshow('binary', processedPicture)
-#cv.imshow('binary from color', binaryFromColor)
 cv.waitKey(0)
 cv.destroyAllWindows()
