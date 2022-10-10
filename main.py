@@ -5,6 +5,19 @@ import numpy as np
 #Læser billedet
 img = cv.imread('Images/coins_evenlyLit.png')
 
+def evenLighting():
+    # read image - gøres ovenover
+    # img = cv.imread("Images/.jpg")
+    h, w, c = img.shape
+
+    # display it
+    cv.imshow("IMAGE", img)
+    #cv2.imshow("THRESHOLD", thresh)
+    #cv2.imshow("RESULT1", result1)
+    #cv2.imshow("RESULT2", result2)
+    cv.waitKey(0)
+
+
 def makeGrayscale(img):
     """
     Returnerer et grayscale image ud fra det som man har puttet ind i funktionen
@@ -49,6 +62,11 @@ def makeImageBinary(img,threshold):
                 output[y, x] = 0
     return output
 
+
+evenLighting()
+cv.destroyAllWindows()
+
+"""
 grayscaleImage = makeGrayscale(img)
 binaryImage = makeImageBinary(img, 0.5)
 
@@ -56,4 +74,5 @@ cv.imshow('original',img)
 cv.imshow('grayscale', grayscaleImage)
 cv.imshow('binary', binaryImage)
 cv.waitKey(0)
-cv.destroyAllWindows()
+"""
+
