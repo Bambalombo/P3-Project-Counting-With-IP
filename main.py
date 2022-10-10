@@ -3,7 +3,7 @@ import cv2 as cv
 import numpy as np
 
 #Læser billedet
-img = cv.imread('Images/coins_evenlyLit.png')
+coinPicture = cv.imread('Images/coins_evenlyLit.png')
 
 def makeGrayscale(img):
     """
@@ -27,7 +27,7 @@ def calculateIntensity(pixel):
     return (intensity)
 
 
-def makeImageBinary(img,threshold):
+def makeImageBinaryIntensityThreshold(img,threshold):
     """
     :param img:
     :param threshold:
@@ -49,11 +49,23 @@ def makeImageBinary(img,threshold):
                 output[y, x] = 0
     return output
 
-grayscaleImage = makeGrayscale(img)
-binaryImage = makeImageBinary(img, 0.5)
 
-cv.imshow('original',img)
-cv.imshow('grayscale', grayscaleImage)
-cv.imshow('binary', binaryImage)
+def morphClose(img):
+    erodeKernel = np.ones((3, 3), dtype=np.uint8)
+    kernel = np.ones((9, 9), dtype=np.uint8)
+    morphErotedImage = cv.erode(img, erodeKernel, iterations=1)
+    morphClosedImage = cv.morphologyEx(morphErotedImage, cv.MORPH_CLOSE, kernel, iterations=2)
+    return morphClosedImage
+
+#grayscaleImage = makeGrayscale(picture)
+binaryImage = makeImageBinaryIntensityThreshold(coinPicture, 0.5)
+processedPicture = morphClose(binaryImage)
+#binaryFromColor = makeImageBinaryRGBThreshold(fyrfadPicture,25,50,60,80,30,55)
+
+
+#cv.imshow('original',picture)
+#cv.imshow('grayscale', grayscaleImage)
+cv.imshow('binary', processedPicture)
+#cv.imshow('binary from color', binaryFromColor)
 cv.waitKey(0)
 cv.destroyAllWindows()
