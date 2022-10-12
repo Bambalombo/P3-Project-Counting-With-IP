@@ -1,7 +1,6 @@
 import cv2 as cv
 import numpy as np
 
-
 def convolve(input_image, kernel_size):
     image = cv.cvtColor(input_image, cv.COLOR_BGR2GRAY)
     kernel = np.ones((kernel_size, kernel_size))

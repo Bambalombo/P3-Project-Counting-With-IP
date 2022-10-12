@@ -54,14 +54,12 @@ def makeImageBinary(img,threshold):
     return output
 
 
-cv.imshow('input_image_p',img_paper)
-lpf_paper = cv.blur(img_paper, (25,25))
-#cv.imshow("low_pass_filter_p",lpf_paper)
-cv.imshow('lpf_illum_correction_p ',el.low_pass_lighting(img_paper,50))
 cv.imshow('input_image_c',img_candles)
-lpf_candles = cv.blur(img_candles, (25,25))
-#cv.imshow("low_pass_filter_c",lpf_candles)
-cv.imshow('lpf_illum_correction_c ',el.low_pass_lighting(img_candles,50))
+cv.imshow('lpf_illum_correction_10 ',el.low_pass_lighting(img_candles,20))
+cv.imshow('lpf_illum_correction_20 ',el.low_pass_lighting(img_candles,40))
+cv.imshow('lpf_illum_correction_30 ',el.low_pass_lighting(img_candles,60))
+cv.imshow('lpf_illum_correction_40 ',el.low_pass_lighting(img_candles,80))
+cv.imshow('lpf_illum_correction_50 ',el.low_pass_lighting(img_candles,100))
 cv.waitKey(0)
 
 """
