@@ -63,14 +63,38 @@ def findAndDrawContours(img):
     imageWithContours = cv.drawContours(inputPicture, contours,-1, (0,255,0), 3)
     return imageWithContours
 
-#grayscaleImage = makeGrayscale(picture)
+
+def edgeFromBinary(img):
+    kernelRadius = 1
+    sobelVerKernel = np.array([[-1,0,1],[-2,0,2],[-1,0,1]], dtype=np.uint8)
+    sobelHorKernel = np.array([[1,2,1],[0,0,0],[-1,-2,-1]], dtype= np.uint8)
+    sobelKernelSum = np.sum(sobelVerKernel)
+
+    verticalApply = np.zeros(((img.shape[0]-(2*kernelRadius+1)),(img.shape[1]-(2*kernelRadius+1))), dtype=np.uint8)
+    horizontalApply = verticalApply
+    for y in range(verticalApply.shape[0]):
+        for x in range(verticalApply.shape[1]):
+            slice = img[y:y+sobelVerKernel.shape[0],x:x+sobelVerKernel.shape[1]]
+            verticalApply[y,x] = (np.sum(slice*sobelVerKernel))
+
+    for y in range(horizontalApply.shape[0]):
+        for x in range(horizontalApply.shape[1]):
+            slice = img[y:y+sobelHorKernel.shape[0],x:x+sobelHorKernel.shape[1]]
+            horizontalApply[y,x] = (np.sum(slice*sobelHorKernel))
+
+    output = cv.add(verticalApply,horizontalApply)
+    return output
+
+
+
+
+grayscaleImage = makeGrayscale(inputPicture)
 binaryImage = makeImageBinaryIntensityThreshold(inputPicture, 0.5)
 processedPicture = morphClose(binaryImage)
-imageWithContours = findAndDrawContours(processedPicture)
+edgedImage = edgeFromBinary(processedPicture)
 
 #cv.imshow('original',picture)
 #cv.imshow('grayscale', grayscaleImage)
-resizedImage = cv.resize(imageWithContours,(200,300))
-cv.imshow('binary', resizedImage)
+cv.imshow('binary', edgedImage)
 cv.waitKey(0)
 cv.destroyAllWindows()
