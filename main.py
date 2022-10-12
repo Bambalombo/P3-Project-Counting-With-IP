@@ -3,7 +3,7 @@ import cv2 as cv
 import numpy as np
 
 #Læser billedet
-coinPicture = cv.imread('Images/coins_evenlyLit.png')
+inputPicture = cv.imread('Images/coins_evenlyLit.png')
 
 def makeGrayscale(img):
     """
@@ -24,7 +24,7 @@ def calculateIntensity(pixel):
     """
     bgrMean = pixel[0] / 3 + pixel[1] / 3 + pixel[2] / 3
     intensity = bgrMean / 255
-    return (intensity)
+    return intensity
 
 
 def makeImageBinaryIntensityThreshold(img,threshold):
@@ -57,12 +57,20 @@ def morphClose(img):
     morphClosedImage = cv.morphologyEx(morphErotedImage, cv.MORPH_CLOSE, kernel, iterations=2)
     return morphClosedImage
 
+def findAndDrawContours(img):
+    contours, hierarchy = cv.findContours(img, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+    print("Number of objects: "+ str(len(contours)))
+    imageWithContours = cv.drawContours(inputPicture, contours,-1, (0,255,0), 3)
+    return imageWithContours
+
 #grayscaleImage = makeGrayscale(picture)
-binaryImage = makeImageBinaryIntensityThreshold(coinPicture, 0.5)
+binaryImage = makeImageBinaryIntensityThreshold(inputPicture, 0.5)
 processedPicture = morphClose(binaryImage)
+imageWithContours = findAndDrawContours(processedPicture)
 
 #cv.imshow('original',picture)
 #cv.imshow('grayscale', grayscaleImage)
-cv.imshow('binary', processedPicture)
+resizedImage = cv.resize(imageWithContours,(200,300))
+cv.imshow('binary', resizedImage)
 cv.waitKey(0)
 cv.destroyAllWindows()
