@@ -1,21 +1,11 @@
 #Importer OpenCV og numpy
 import cv2 as cv
 import numpy as np
+import even_lighting as el
+from matplotlib import pyplot as plt
 
 #Læser billedet
-img = cv.imread('Images/coins_evenlyLit.png')
-
-def evenLighting():
-    # read image - gøres ovenover
-    # img = cv.imread("Images/.jpg")
-    h, w, c = img.shape
-
-    # display it
-    cv.imshow("IMAGE", img)
-    #cv2.imshow("THRESHOLD", thresh)
-    #cv2.imshow("RESULT1", result1)
-    #cv2.imshow("RESULT2", result2)
-    cv.waitKey(0)
+img = cv.imread('Images/fyrfadslys.jpg')
 
 
 def makeGrayscale(img):
@@ -63,8 +53,11 @@ def makeImageBinary(img,threshold):
     return output
 
 
-evenLighting()
-cv.destroyAllWindows()
+cv.imshow('original',img)
+LPF_img = cv.blur(img, (25,25))
+cv.imshow("lpf",LPF_img)
+cv.imshow('blurred ',el.low_pass_lighting(img,25))
+cv.waitKey(0)
 
 """
 grayscaleImage = makeGrayscale(img)
