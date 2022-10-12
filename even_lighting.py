@@ -47,15 +47,15 @@ def low_pass_lighting(input_image, kernel_size=1):
     :return:
     """
     height, width, channels = input_image.shape
-
     output = np.zeros((height, width, channels),dtype=np.uint8)
+
     lpf_img = cv.blur(input_image, (kernel_size,kernel_size))
-    lpf_mean = np.mean(lpf_img,dtype=np.uint8)
+    lpf_mean = lpf_img.mean()
 
     for channel in range(channels):
         for y in range(height):
             for x in range(width):
-                value = clamp(float(input_image[y,x,channel]) - float(lpf_img[y,x,channel]) + float(round(lpf_mean)),0,255)
+                value = clamp(int(input_image[y,x,channel]) - int(lpf_img[y,x,channel]) + int(round(lpf_mean)),0,255)
                 output[y,x,channel] = value
 
     return output

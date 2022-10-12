@@ -5,7 +5,8 @@ import even_lighting as el
 from matplotlib import pyplot as plt
 
 #Læser billedet
-img = cv.imread('Images/fyrfadslys.jpg')
+img_paper = cv.imread('Images/paper.jpg')
+img_candles = cv.imread('Images/fyrfadslys.jpg')
 
 
 def makeGrayscale(img):
@@ -53,10 +54,14 @@ def makeImageBinary(img,threshold):
     return output
 
 
-cv.imshow('original',img)
-LPF_img = cv.blur(img, (25,25))
-cv.imshow("lpf",LPF_img)
-cv.imshow('blurred ',el.low_pass_lighting(img,25))
+cv.imshow('input_image_p',img_paper)
+lpf_paper = cv.blur(img_paper, (25,25))
+#cv.imshow("low_pass_filter_p",lpf_paper)
+cv.imshow('lpf_illum_correction_p ',el.low_pass_lighting(img_paper,50))
+cv.imshow('input_image_c',img_candles)
+lpf_candles = cv.blur(img_candles, (25,25))
+#cv.imshow("low_pass_filter_c",lpf_candles)
+cv.imshow('lpf_illum_correction_c ',el.low_pass_lighting(img_candles,50))
 cv.waitKey(0)
 
 """
