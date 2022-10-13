@@ -2,6 +2,7 @@
 import cv2 as cv
 import numpy as np
 import even_lighting as el
+import morphology as morph
 from matplotlib import pyplot as plt
 
 #Læser billedet
@@ -53,13 +54,8 @@ def makeImageBinary(img,threshold):
                 output[y, x] = 0
     return output
 
-
-cv.imshow('input_image_c',img_candles)
-cv.imshow('lpf_illum_correction_10 ',el.low_pass_lighting(img_candles,20))
-cv.imshow('lpf_illum_correction_20 ',el.low_pass_lighting(img_candles,40))
-cv.imshow('lpf_illum_correction_30 ',el.low_pass_lighting(img_candles,60))
-cv.imshow('lpf_illum_correction_40 ',el.low_pass_lighting(img_candles,80))
-cv.imshow('lpf_illum_correction_50 ',el.low_pass_lighting(img_candles,100))
+cv.imshow("original", img_candles)
+cv.imshow("even", even_lit)
 cv.waitKey(0)
 
 """
