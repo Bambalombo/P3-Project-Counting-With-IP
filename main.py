@@ -71,7 +71,7 @@ def edgeFromBinary(img):
     sobelKernelSum = np.sum(sobelVerKernel)
 
     verticalApply = np.zeros(((img.shape[0]-(2*kernelRadius+1)),(img.shape[1]-(2*kernelRadius+1))), dtype=np.uint8)
-    horizontalApply = verticalApply
+    horizontalApply = verticalApply.copy()
     for y in range(verticalApply.shape[0]):
         for x in range(verticalApply.shape[1]):
             slice = img[y:y+sobelVerKernel.shape[0],x:x+sobelVerKernel.shape[1]]
@@ -94,7 +94,7 @@ processedPicture = morphClose(binaryImage)
 edgedImage = edgeFromBinary(processedPicture)
 
 #cv.imshow('original',picture)
-#cv.imshow('grayscale', grayscaleImage)
-cv.imshow('binary', edgedImage)
+cv.imshow('input', processedPicture)
+cv.imshow('edge', edgedImage)
 cv.waitKey(0)
 cv.destroyAllWindows()
