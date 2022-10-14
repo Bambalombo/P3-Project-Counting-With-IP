@@ -5,8 +5,10 @@ import math
 
 def convolve_2D(image, kernel_size=3, filter_type=0, standard_deviation = 1):
     """
-    inspireret af andreas møgelmose live coding
-    lægger et mean filter af given kernel størrelse over det angivne billede
+    - This method is for applying a kernel on an image. The kernel is convoluted over the image and applied to every pixel. 
+    - The standard kernel is a mean-kernel of ones which blurs the image based on the provided kernel-size.
+    - inspireret af andreas møgelmose live coding
+    - lægger et mean filter af given kernel størrelse over det angivne billede
     """
 
     if len(image.shape) == 3:
@@ -25,10 +27,10 @@ def convolve_2D(image, kernel_size=3, filter_type=0, standard_deviation = 1):
 
 def convolve_3D(input_image, kernel_size=3, filter_type=0, standard_deviation = 1):
     """
-    Blurs the input image with a kernel of one's of the specified size.
-
-    (ikke implementeret) filter_type = 0: mean-filter
-    (ikke implementeret) filter_type = 1: gaussian-filter
+    - This method is for applying a kernel on an image. The kernel is convoluted over every **channel** the image (*for a BGR this blurs B, G, and R separately, then assembled them into a new image*)
+    - Blurs each channel of the input image with a kernel of one's of the specified size.
+    - (ikke implementeret) filter_type = 0: mean-filter
+    - (ikke implementeret) filter_type = 1: gaussian-filter
     """
 
     if len(input_image.shape) != 3:
