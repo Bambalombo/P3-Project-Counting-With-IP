@@ -1,10 +1,29 @@
 #Importer OpenCV og numpy
 import cv2 as cv
 import numpy as np
+
 from collections import deque
 #Læser billedet
 inputPicture = cv.imread('Images/DillerCoins.jpg')
 inputPicture = cv.resize(inputPicture,(600,800))
+
+import even_lighting as el
+import morphology as morph
+from matplotlib import pyplot as plt
+
+#Læser billedet
+img_paper = cv.imread('Images/paper.jpg')
+img_candles = cv.imread('Images/fyrfadslys.jpg')
+img_scarf = cv.imread('Images/scarf.jpeg')
+
+scale_percent = 50  # percent of original size
+scarf_width = int(img_scarf.shape[1] * scale_percent / 100)
+scarf_height = int(img_scarf.shape[0] * scale_percent / 100)
+dim = (scarf_width, scarf_height)
+
+# resize image
+img_scarf_resized = cv.resize(img_scarf, dim, interpolation=cv.INTER_AREA)
+
 def makeGrayscale(img):
     """
     Returnerer et grayscale image ud fra det som man har puttet ind i funktionen
@@ -179,3 +198,4 @@ cv.imshow('processed', processedPicture)
 cv.imshow('outline', outlineImage)
 cv.waitKey(0)
 cv.destroyAllWindows()
+
