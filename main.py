@@ -8,6 +8,15 @@ from matplotlib import pyplot as plt
 #Læser billedet
 img_paper = cv.imread('Images/paper.jpg')
 img_candles = cv.imread('Images/fyrfadslys.jpg')
+img_scarf = cv.imread('Images/scarf.jpeg')
+
+scale_percent = 50  # percent of original size
+scarf_width = int(img_scarf.shape[1] * scale_percent / 100)
+scarf_height = int(img_scarf.shape[0] * scale_percent / 100)
+dim = (scarf_width, scarf_height)
+
+# resize image
+img_scarf_resized = cv.resize(img_scarf, dim, interpolation=cv.INTER_AREA)
 
 
 def makeGrayscale(img):
@@ -54,8 +63,39 @@ def makeImageBinary(img,threshold):
                 output[y, x] = 0
     return output
 
-cv.imshow("original", img_candles)
-cv.imshow("even", even_lit)
+
+print('jeg er her 31')
+mean31 = el.illumination_lpf_mean_color(img_scarf_resized,31)
+mean31c = el.illumination_lpf_mean_color(img_candles,31)
+print('jeg er her 61')
+mean61 = el.illumination_lpf_mean_color(img_scarf_resized,61)
+mean61c = el.illumination_lpf_mean_color(img_candles,61)
+print('jeg er her 91')
+mean91 = el.illumination_lpf_mean_color(img_scarf_resized,91)
+mean91c = el.illumination_lpf_mean_color(img_candles,91)
+print('jeg er her 121')
+mean121 = el.illumination_lpf_mean_color(img_scarf_resized,121)
+mean121c = el.illumination_lpf_mean_color(img_candles,121)
+print('jeg er her 151')
+mean151 = el.illumination_lpf_mean_color(img_scarf_resized,151)
+mean151c = el.illumination_lpf_mean_color(img_candles,151)
+print('jeg er her mean')
+hsl = el.illumination_lpf_mean_hsl(img_scarf_resized,3)
+print('jeg er klar')
+
+cv.imshow("original",img_scarf_resized)
+cv.imshow("mean31",mean31)
+cv.imshow("mean61",mean61)
+cv.imshow("mean91",mean91)
+cv.imshow("mean121",mean121)
+cv.imshow("mean151",mean151)
+
+cv.imshow("originalc",img_scarf_resized)
+cv.imshow("mean31c",mean31c)
+cv.imshow("mean61c",mean61c)
+cv.imshow("mean91c",mean91c)
+cv.imshow("mean121c",mean121c)
+cv.imshow("mean151c",mean151c)
 cv.waitKey(0)
 
 """
