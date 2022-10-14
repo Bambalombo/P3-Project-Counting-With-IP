@@ -1,9 +1,23 @@
 #Importer OpenCV og numpy
 import cv2 as cv
 import numpy as np
+import even_lighting as el
+import morphology as morph
+from matplotlib import pyplot as plt
 
 #Læser billedet
-img = cv.imread('Images/coins_evenlyLit.png')
+img_paper = cv.imread('Images/paper.jpg')
+img_candles = cv.imread('Images/fyrfadslys.jpg')
+img_scarf = cv.imread('Images/scarf.jpeg')
+
+scale_percent = 50  # percent of original size
+scarf_width = int(img_scarf.shape[1] * scale_percent / 100)
+scarf_height = int(img_scarf.shape[0] * scale_percent / 100)
+dim = (scarf_width, scarf_height)
+
+# resize image
+img_scarf_resized = cv.resize(img_scarf, dim, interpolation=cv.INTER_AREA)
+
 
 def makeGrayscale(img):
     """
@@ -49,11 +63,3 @@ def makeImageBinary(img,threshold):
                 output[y, x] = 0
     return output
 
-grayscaleImage = makeGrayscale(img)
-binaryImage = makeImageBinary(img, 0.5)
-
-cv.imshow('original',img)
-cv.imshow('grayscale', grayscaleImage)
-cv.imshow('binary', binaryImage)
-cv.waitKey(0)
-cv.destroyAllWindows()
