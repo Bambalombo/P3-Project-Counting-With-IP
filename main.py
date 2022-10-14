@@ -3,8 +3,8 @@ import cv2 as cv
 import numpy as np
 from collections import deque
 #Læser billedet
-inputPicture = cv.imread('Images/fyrfadslys.jpg')
-
+inputPicture = cv.imread('Images/DillerCoins.jpg')
+inputPicture = cv.resize(inputPicture,(600,800))
 def makeGrayscale(img):
     """
     Returnerer et grayscale image ud fra det som man har puttet ind i funktionen
@@ -164,9 +164,13 @@ def grassfire(img):
     print(str(len(blobs)))
 
 
+print('making picture binary')
 binaryImage = makeImageBinaryIntensityThreshold(inputPicture, 0.5)
+print('morphing')
 processedPicture = morphClose(binaryImage)
+print('outlining')
 outlineImage = outlineFromBinary(processedPicture,3)
+print('counting blobs')
 grassfire(outlineImage)
 
 cv.imshow('original',inputPicture)
