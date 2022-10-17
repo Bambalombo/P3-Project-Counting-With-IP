@@ -15,13 +15,15 @@ def convolve_2D(image, kernel_size=3, filter_type=0, standard_deviation = 1):
         image = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
 
     kernel = np.ones((kernel_size, kernel_size))
+    kernel /= np.sum(kernel)
 
     output = np.zeros((image.shape[0] - kernel_size + 1, image.shape[1] - kernel_size + 1), dtype=np.uint8)
 
     for y in range(output.shape[0]):
         for x in range(output.shape[1]):
             slice = image[y:y + kernel_size, x:x + kernel_size]
-            output[y, x] = np.sum(slice * kernel) / np.sum(kernel)
+            output[y, x] = np.sum(slice * kernel)
+
     return output
 
 
@@ -81,14 +83,14 @@ def illumination_mean_filter_BGR(input_image, kernel_size=1):
     lpf_img = cv.blur(input_image, (kernel_size, kernel_size))
     lpf_mean = lpf_img.mean()
 
+    print(f'jeg fik et billede. Jeg fik en kernel size på {kernel_size}')
+
     for channel in range(channels):
         print(f'jeg er i gang med channel {channel+1} af {channels}')
         for y in range(height):
             for x in range(width):
-                value = clamp(int(input_image[y, x, channel]) - int(lpf_img[y, x, channel]) + int(round(lpf_mean)), 0,
-                              255)
+                value = clamp(int(input_image[y, x, channel]) - int(lpf_img[y, x, channel]) + int(round(lpf_mean)), 0, 255)
                 output[y, x, channel] = value
-
 
     return output
 
