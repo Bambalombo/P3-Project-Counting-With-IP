@@ -19,6 +19,7 @@ def convolve_2D(image, kernel_size=3, filter_type=0, standard_deviation = 1):
 
     output = np.zeros((image.shape[0] - kernel_size + 1, image.shape[1] - kernel_size + 1), dtype=np.uint8)
 
+    print('der blurres')
     for y in range(output.shape[0]):
         for x in range(output.shape[1]):
             slice = image[y:y + kernel_size, x:x + kernel_size]
@@ -42,8 +43,12 @@ def convolve_3D(input_image, kernel_size=3, filter_type=0, standard_deviation = 
     height, width, channels = input_image.shape
     output = np.zeros((height - kernel_size + 1, width - kernel_size + 1, channels), dtype=np.uint8)
 
+
+    print('kalder at blurre kanal 1')
     output[:, :, 0] = convolve_2D(input_image[:, :, 0], kernel_size)
+    print('kalder at blurre kanal 2')
     output[:, :, 1] = convolve_2D(input_image[:, :, 1], kernel_size)
+    print('kalder at blurre kanal 3')
     output[:, :, 2] = convolve_2D(input_image[:, :, 2], kernel_size)
 
     return output
@@ -56,14 +61,16 @@ def illumination_mean_filter_2D(input_image, kernel_size=1):
     corrected_image[y,x] = original_image[y,x] - mean_filter_img[y,x] + mean(mean_filter_image)
     """
     height, width = input_image.shape
-    output = np.zeros((height, width), dtype=np.uint8)
+    #output = np.zeros((height, width, channels), dtype=np.uint8) # for cv2, since image doesn't get smaller
+    output = np.zeros((height-kernel_size+1, width-kernel_size+1), dtype=np.uint8)
 
-    lpf_img = cv.blur(input_image, (kernel_size, kernel_size))
+    #lpf_img = cv.blur(input_image, (kernel_size, kernel_size))
+    lpf_img = convolve_2D(input_image, kernel_size)
     lpf_mean = lpf_img.mean()
 
-    for y in range(height):
-        for x in range(width):
-            value = clamp(int(input_image[y, x]) - int(lpf_img[y, x]) + int(round(lpf_mean)), 0, 255)
+    for y in range(height-kernel_size+1):
+        for x in range(width-kernel_size+1):
+            value = clamp(int(input_image[int(y+(kernel_size/2)), int(x+(kernel_size/2))]) - int(lpf_img[y, x]) + int(round(lpf_mean)), 0, 255)
             output[y, x] = value
 
     return output
@@ -78,18 +85,20 @@ def illumination_mean_filter_BGR(input_image, kernel_size=1):
     Performs the 2D illumination correction for each color channel.
     """
     height, width, channels = input_image.shape
-    output = np.zeros((height, width, channels), dtype=np.uint8)
+    #output = np.zeros((height, width, channels), dtype=np.uint8) # for cv2, since image doesn't get smaller
+    output = np.zeros((height-kernel_size+1, width-kernel_size+1, channels), dtype=np.uint8)
 
-    lpf_img = cv.blur(input_image, (kernel_size, kernel_size))
+    #lpf_img = cv.blur(input_image, (kernel_size, kernel_size))
+    lpf_img = convolve_3D(input_image, kernel_size)
     lpf_mean = lpf_img.mean()
 
     print(f'jeg fik et billede. Jeg fik en kernel size på {kernel_size}')
 
     for channel in range(channels):
-        print(f'jeg er i gang med channel {channel+1} af {channels}')
-        for y in range(height):
-            for x in range(width):
-                value = clamp(int(input_image[y, x, channel]) - int(lpf_img[y, x, channel]) + int(round(lpf_mean)), 0, 255)
+        print(f'jeg fixer lige lighting på channel {channel+1} af {channels}')
+        for y in range(height-kernel_size+1):
+            for x in range(width-kernel_size+1):
+                value = clamp(int(input_image[int(y+(kernel_size/2)), int(x+(kernel_size/2)), channel]) - int(lpf_img[y, x, channel]) + int(round(lpf_mean)), 0, 255)
                 output[y, x, channel] = value
 
     return output
