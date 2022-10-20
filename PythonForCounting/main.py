@@ -143,12 +143,12 @@ def grassfire(img):
         while(len(burnQueue) > 0):
             nextpos = burnQueue.pop()
             #tilføjer den næste position til vores blob
-            currentblob.append(nextpos)
+            currentblob.append([nextpos[0]-1,nextpos[1]-1])
             #burningImage[nextpos[0],nextpos[1]] = 0
             #kontrollere rund om positionen om der der flere pixels
             for i in eightConnectivityarray:
                 checkpos = [(nextpos[0] + i[0]), (nextpos[1] + i[1])]
-                if burningImage[checkpos[0],checkpos[1]] == 255 and checkpos not in currentblob and checkpos not in burnQueue:
+                if burningImage[checkpos[0],checkpos[1]] == 255 and [checkpos[0]-1,checkpos[1]-1] not in currentblob and checkpos not in burnQueue:
                     burnQueue.append(checkpos)
         # hvis burnqueue er tom er blobben færdig så vi returner den
         return currentblob
@@ -164,7 +164,7 @@ def grassfire(img):
                 if burningImage[y+1,x+1] == 255:
                     found = False
                     for blob in blobs:
-                        if [y+1,x+1] in blob:
+                        if [y,x] in blob:
                             found = True
                             break
                     if found == False:
