@@ -184,9 +184,6 @@ blobs = grassfire(outlined)
 print(blobs)
 print(len(blobs))
 
-
-
-
 cv.waitKey(0)
 cv.destroyAllWindows()
 
