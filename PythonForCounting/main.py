@@ -6,6 +6,7 @@ from Libraries import even_lighting as el
 from Libraries import morphology as morph
 from matplotlib import pyplot as plt
 from Libraries import Thresholding as th
+from Libraries import bordering as bd
 
 def makeGrayscale(img):
     """
@@ -86,21 +87,6 @@ def edgeWithSobel(img):
 
     output = cv.add(verticalApply,horizontalApply)
     return output
-def addZeroPadding(img, sizey,sizex):
-    """
-
-    :param img:
-    :param sizey:
-    :param sizex:
-    :return:
-
-    rescales picture with zeropadding to size y,size x
-    """
-    paddedImage = np.zeros((sizey,sizex), dtype=np.uint8)
-    for y in range(img.shape[0]):
-        for x in range(img.shape[1]):
-            paddedImage[y+int((sizey-img.shape[0])/2),x+int((sizex-img.shape[1])/2)] = img[y,x]
-    return paddedImage
 
 def outlineFromBinary(img, kernelRadius):
     """
@@ -122,7 +108,7 @@ def outlineFromBinary(img, kernelRadius):
             else:
                 erodedImg[y,x] = 0
 
-    paddedImage = addZeroPadding(erodedImg,img.shape[0],img.shape[1])
+    paddedImage = bd.addZeroPadding(erodedImg,img.shape[0],img.shape[1])
     output = cv.subtract(img,paddedImage)
     return output
 
@@ -155,7 +141,7 @@ def grassfire(img):
 
 
     #laver en kant af nuller omkring det originale billede, for at kunne detekte blobs i kanten
-    burningImage = addZeroPadding(img.copy(),img.shape[0]+2,img.shape[1]+2)
+    burningImage = bd.addZeroPadding(img.copy(),img.shape[0]+2,img.shape[1]+2)
     #en liste over alle vores blobs, indeholder lister med koordinater for pixels
     blobs = []
 
@@ -173,11 +159,15 @@ def grassfire(img):
 
 
 inputPicture = cv.imread('Images/coins_evenlyLit.png')
-binary = makeImageBinaryIntensityThreshold(inputPicture,0.5)
-morphed = morphClose(binary)
-outlined = outlineFromBinary(morphed,1)
 cv.imshow('input', inputPicture)
-cv.imshow('morphed', outlined)
+binary = makeImageBinaryIntensityThreshold(inputPicture,0.5)
+cv.imshow('binary', binary)
+eroded = morph.erode(binary,3)
+morphed = morph.close(eroded,11)
+cv.imshow('morphed', morphed)
+outlined = outlineFromBinary(morphed,1)
+
+cv.imshow('outlined', outlined)
 
 blobs = grassfire(outlined)
 
