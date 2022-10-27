@@ -7,7 +7,7 @@ from Libraries import morphology as morph
 from matplotlib import pyplot as plt
 
 #Læser billedet
-inputPicture = cv.imread('Images/coins_evenlyLit.png')
+inputPicture = cv.imread('Images/coins_unevenlyLit.png')
 
 
 def makeGrayscale(img):
@@ -187,6 +187,7 @@ def grassfire(img):
                     imageNextPos = lastLoopingPixel
     return blobs
 
+"""
 print('making picture binary')
 binaryImage = makeImageBinaryIntensityThreshold(inputPicture, 0.5)
 print('morphing')
@@ -201,6 +202,11 @@ cv.imshow('original',inputPicture)
 cv.imshow('binary',binaryImage)
 cv.imshow('processed', processedPicture)
 cv.imshow('outline', outlineImage)
+"""
+
+cv.imshow("Illumination Corrected",el.illumination_mean_filter_BGR(inputPicture,151))
+cv.imshow("Border",el.addborder_reflect(inputPicture,151))
+cv.imshow("Original", inputPicture)
 cv.waitKey(0)
 cv.destroyAllWindows()
 
