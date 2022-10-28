@@ -42,8 +42,7 @@ def addborder_reflect(input_image, kernel_size):
 
     if radius is 0:
         output = input_image
-        return output
-        
+
     elif radius <= input_height and input_width:
 
         # Sidernes kanter (Denne skal slettes og den anden udkommenteres)
