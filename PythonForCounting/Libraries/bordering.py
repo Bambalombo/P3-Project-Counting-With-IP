@@ -45,30 +45,17 @@ def addborder_reflect(input_image, kernel_size):
 
     elif radius <= input_height and input_width:
 
-        # Sidernes kanter (Denne skal slettes og den anden udkommenteres)
-        for y in range(input_height):
-
-            for x in range(input_width):
-                # Fill middle of output image
-                output[y + radius, x + radius] = input_image[y, x]
-
-        cv.imwrite("input_image_init_border.png", output)
-
         # Sidernes kanter
         for y in range(input_height):
-            """
             for x in range(input_width):
                 # Fill middle of output image
                 output[y + radius, x + radius] = input_image[y, x]
-            """
 
             for x in range(radius):
                 # Højre
                 output[(radius) + y, (output_width - 1) - x] = input_image[y,(input_width - radius) + x]
                 # Venstre
                 output[(radius) + y, (radius) - x] = input_image[y, x]
-
-        cv.imwrite("new_img_side_border.png", output)
 
         # Top og bund kanter           # Bemærk vi gør det i omvendt rækkefølge her (x før y), fordi begge gange tjekker
         for x in range(output_width):  # vi over hele bredden, så derfor kan vi ligeså godt gøre det i samme loop.
@@ -77,8 +64,6 @@ def addborder_reflect(input_image, kernel_size):
                 output[y, x] = output[(2 * radius) - y, x]
                 # Bund
                 output[(output_height - 1) - y, x] = output[(input_height - 1) + y, x]
-
-        cv.imwrite("new_img_full_borders.png", output)
 
     else:
         print("Kernel too big for image, idiot")
