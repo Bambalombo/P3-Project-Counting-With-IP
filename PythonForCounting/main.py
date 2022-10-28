@@ -108,17 +108,16 @@ def outlineFromBinary(img, kernelRadius):
             else:
                 erodedImg[y,x] = 0
 
-    paddedImage = bd.addZeroPadding(erodedImg,img.shape[0],img.shape[1])
+    paddedImage = bd.addPadding(erodedImg,img.shape[0],img.shape[1],np.uint8(0))
     output = cv.subtract(img,paddedImage)
     return output
 
-def grassfire(img):
+def grassfire(img, whitepixel = 255):
     """
 
     :param img:
     :return:
     """
-
     def startBurning(startpos, burningImage):
         eightConnectivityarray = [[-1,1],[-1,0],[-1,-1],[0,-1],[1,-1],[1,0],[1,1],[0,1]]
         burnQueue = deque()
@@ -134,20 +133,20 @@ def grassfire(img):
             #kontrollere rund om positionen om der der flere pixels
             for i in eightConnectivityarray:
                 checkpos = [(nextpos[0] + i[0]), (nextpos[1] + i[1])]
-                if burningImage[checkpos[0],checkpos[1]] == 255 and [checkpos[0]-1,checkpos[1]-1] not in currentblob and checkpos not in burnQueue:
+                if burningImage[checkpos[0],checkpos[1]] == whitepixel and [checkpos[0]-1,checkpos[1]-1] not in currentblob and checkpos not in burnQueue:
                     burnQueue.append(checkpos)
         # hvis burnqueue er tom er blobben færdig så vi returner den
         return currentblob
 
 
     #laver en kant af nuller omkring det originale billede, for at kunne detekte blobs i kanten
-    burningImage = bd.addZeroPadding(img.copy(),img.shape[0]+2,img.shape[1]+2)
+    burningImage = bd.addPadding(img.copy(),img.shape[0]+2,img.shape[1]+2,np.uint8(0))
     #en liste over alle vores blobs, indeholder lister med koordinater for pixels
     blobs = []
 
     for y in range(burningImage.shape[0]-2):
         for x in range(burningImage.shape[1]-2):
-                if burningImage[y+1,x+1] == 255:
+                if burningImage[y+1,x+1] == whitepixel:
                     found = False
                     for blob in blobs:
                         if [y,x] in blob:

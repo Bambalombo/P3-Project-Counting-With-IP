@@ -1,7 +1,7 @@
 import cv2 as cv
 import numpy as np
 
-def addZeroPadding(img, sizey,sizex):
+def addPadding(img, sizey,sizex,padding: np.uint8):
     """
 
     :param img:
@@ -9,9 +9,9 @@ def addZeroPadding(img, sizey,sizex):
     :param sizex:
     :return:
 
-    rescales picture with zeropadding to size y,size x
+    rescales picture with padding to size y,size x with intensity provided in the padding variable
     """
-    paddedImage = np.zeros((sizey,sizex), dtype=np.uint8)
+    paddedImage = np.ones((sizey,sizex), dtype=np.uint8)*padding
     for y in range(img.shape[0]):
         for x in range(img.shape[1]):
             paddedImage[y+int((sizey-img.shape[0])/2),x+int((sizex-img.shape[1])/2)] = img[y,x]
@@ -40,7 +40,7 @@ def addborder_reflect(input_image, kernel_size):
 
     cv.imwrite("input_image.png",input_image)
 
-    if radius is 0:
+    if radius == 0:
         output = input_image
 
     elif radius <= input_height and input_width:
