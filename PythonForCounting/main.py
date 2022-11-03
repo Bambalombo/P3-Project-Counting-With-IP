@@ -1,4 +1,6 @@
 # Importer OpenCV og numpy
+import time
+
 import cv2 as cv
 import numpy as np
 from collections import deque
@@ -24,6 +26,16 @@ def makeImagePyramide(startingImage, scale, minWidth):
         yield currentImage
         currentImage = cv.resize(currentImage, (int(currentImage.shape[1] / scale), int(currentImage.shape[0] / scale)))
 
+def windowSlider(image, windowSize: tuple, stepSize):
+    """
+    Returnere en slicegenerator, som genererer et slice for hvert step igennem et billede, looper man over generatoren kan man så lave image processing på hvert slice.
+    :param image: Billedet man vil loope henover
+    :param windowSize: størrelesen på slicet (y,x)
+    :param stepSize: hvor stort et skridt man skal tage mellem hvert slice
+    """
+    for y in range(0,image.shape[0], stepSize):
+        for x in range(0, image.shape[1],stepSize):
+            yield (y,x, image[y:y+windowSize[0],x:x+windowSize[1]])
 
 def makeGrayscale(img):
     """
@@ -107,11 +119,24 @@ def grassfire(img, whitepixel=255):
     return blobs
 
 
-inputPicture = cv.imread('Images/coins_evenlyLit.png')
-imagePyramide  = makeImagePyramide(inputPicture,1.5,100)
 
-for i, image in enumerate(imagePyramide):
-    cv.imshow(f'billede nr.     {i+1}',image)
+inputPicture = cv.imread('Images/coins_evenlyLit.png')
+imagePyramide  = makeImagePyramide(inputPicture,1.5,150)
+#definere vinduestørrelsen, tænker den skulle laves ud fra inputbilledet
+windowSize = (int(inputPicture.shape[0]/10), int(inputPicture.shape[1]/10))
+#looper over alle billeder i billedpyramiden, man behøver ikke at lave pyramiden først, den kan laves på samme linje hernede
+for image in imagePyramide:
+    #looper over alle vinduerne i billedet
+    for (y,x,window) in windowSlider(image,windowSize,int(windowSize[0]/2)):
+        #Vinduet kan godt blive lavet halvt uden for billedet, hvis dette ikke er ønsket kan vi skippe den beregning i loopet men det er lige en diskussion vi skal have i gruppen
+        if(window.shape[0] != windowSize[0] or window.shape[1] != windowSize[1]):
+            continue
+        #tegner en rektangel der går hen over billedet for illustrating purposes
+        clone = image.copy()
+        cv.rectangle(clone, (x, y), (x + windowSize[1], y + windowSize[0]), (0, 255, 0), 2)
+        cv.imshow("window", clone)
+        cv.waitKey(1)
+        time.sleep(0.05)
 
 cv.waitKey(0)
 cv.destroyAllWindows()
