@@ -7,7 +7,7 @@ from Libraries import morphology as morph
 from matplotlib import pyplot as plt
 from Libraries import Thresholding as th
 from Libraries import bordering as bd
-
+from Libraries import Outlining as outl
 
 def makeGrayscale(img):
     """
@@ -19,54 +19,6 @@ def makeGrayscale(img):
     output[:, :] = img[:, :, 0] * 0.114 + img[:, :, 1] * 0.587 + img[:, :, 2] * 0.299
     return output
 
-
-def calculateIntensity(pixel):
-    """
-    Returnerer intensiteten af en enkelt pixel
-    :param pixel:
-    :return:
-    """
-    bgrMean = pixel[0] / 3 + pixel[1] / 3 + pixel[2] / 3
-    intensity = bgrMean / 255
-    return intensity
-
-
-def makeImageBinaryIntensityThreshold(img, threshold):
-    """
-    :param img:
-    :param threshold:
-    :return black and white output:
-
-    Funktion der gør pixels med en intensity værdi større end threshold sorte
-    og pixels med en intensity værdi mindre end threshold hvide
-    Skal tage imod et bgr image
-
-    Linus er den bedste 😎
-    -------
-    """
-    output = np.zeros((img.shape[0], img.shape[1]), dtype=np.uint8)
-    for y, row in enumerate(img):
-        for x, pixel in enumerate(row):
-            if calculateIntensity(img[y, x]) < threshold:
-                output[y, x] = 255
-            else:
-                output[y, x] = 0
-    return output
-
-
-def morphClose(img):
-    erodeKernel = np.ones((3, 3), dtype=np.uint8)
-    kernel = np.ones((9, 9), dtype=np.uint8)
-    morphErotedImage = cv.erode(img, erodeKernel, iterations=1)
-    morphClosedImage = cv.morphologyEx(morphErotedImage, cv.MORPH_CLOSE, kernel, iterations=2)
-    return morphClosedImage
-
-
-def findAndDrawContours(img):
-    contours, hierarchy = cv.findContours(img, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
-    print("Number of objects: " + str(len(contours)))
-    imageWithContours = cv.drawContours(inputPicture, contours, -1, (0, 255, 0), 3)
-    return imageWithContours
 
 
 def edgeWithSobel(img):
@@ -91,30 +43,6 @@ def edgeWithSobel(img):
     output = cv.add(verticalApply, horizontalApply)
     return output
 
-
-def outlineFromBinary(img, kernelRadius):
-    """
-    :param img:
-    :param kernelRadius:
-    :return:
-
-    Funktion der laver et eroted billede og trækker det fra det originale billede,
-    for at få et billede med outlinen af objekter.
-
-    """
-    kernel = np.ones((kernelRadius * 2 + 1, kernelRadius * 2 + 1), dtype=np.uint8) * 255
-    erodedImg = np.zeros((img.shape[0] - kernelRadius * 2, img.shape[1] - kernelRadius * 2), dtype=np.uint8)
-    for y in range(erodedImg.shape[0]):
-        for x in range(erodedImg.shape[1]):
-            slice = img[y:y + kernel.shape[0], x:x + kernel.shape[1]]
-            if np.allclose(kernel, slice):
-                erodedImg[y, x] = 255
-            else:
-                erodedImg[y, x] = 0
-
-    paddedImage = bd.addPadding(erodedImg, img.shape[0], img.shape[1], np.uint8(0))
-    output = cv.subtract(img, paddedImage)
-    return output
 
 
 def grassfire(img, whitepixel=255):
@@ -165,12 +93,12 @@ def grassfire(img, whitepixel=255):
 
 inputPicture = cv.imread('Images/coins_evenlyLit.png')
 cv.imshow('input', inputPicture)
-binary = makeImageBinaryIntensityThreshold(inputPicture, 0.5)
+binary = th.makeImageBinaryIntensityThreshold(inputPicture, 0.5)
 cv.imshow('binary', binary)
 eroded = morph.erode(binary, 3)
 morphed = morph.close(eroded, 11)
 cv.imshow('morphed', morphed)
-outlined = outlineFromBinary(morphed, 1)
+outlined = outl.outlineFromBinary(morphed, 1)
 
 cv.imshow('outlined', outlined)
 
