@@ -9,6 +9,22 @@ from Libraries import Thresholding as th
 from Libraries import bordering as bd
 from Libraries import Outlining as outl
 
+
+def makeImagePyramide(startingImage, scale, minWidth):
+    """
+    Returnere en pyramidegenerator, det vil sige den returnere et objekt man kan loope over, som så returnerer hvert enkelt billede
+    :param startingImage: startsbilledet
+    :param scale: hvor meget mindre størrelsen skal blive pr. spring
+    :param minWidth: hvor stort det mindste billede skal være
+    """
+    #yield gør så man kan loope over pyramiden, og få et objekt hver gang yield bliver kaldt
+    yield startingImage
+    currentImage = cv.resize(startingImage, (int(startingImage.shape[1] / scale), int(startingImage.shape[0] / scale)))
+    while currentImage.shape[1] > minWidth:
+        yield currentImage
+        currentImage = cv.resize(currentImage, (int(currentImage.shape[1] / scale), int(currentImage.shape[0] / scale)))
+
+
 def makeGrayscale(img):
     """
     Returnerer et grayscale image ud fra det som man har puttet ind i funktionen
@@ -92,20 +108,10 @@ def grassfire(img, whitepixel=255):
 
 
 inputPicture = cv.imread('Images/coins_evenlyLit.png')
-cv.imshow('input', inputPicture)
-binary = th.makeImageBinaryIntensityThreshold(inputPicture, 0.5)
-cv.imshow('binary', binary)
-eroded = morph.erode(binary, 3)
-morphed = morph.close(eroded, 11)
-cv.imshow('morphed', morphed)
-outlined = outl.outlineFromBinary(morphed, 1)
+imagePyramide  = makeImagePyramide(inputPicture,1.5,100)
 
-cv.imshow('outlined', outlined)
-
-blobs = grassfire(outlined)
-
-print(blobs)
-print(len(blobs))
+for i, image in enumerate(imagePyramide):
+    cv.imshow(f'billede nr.     {i+1}',image)
 
 cv.waitKey(0)
 cv.destroyAllWindows()
