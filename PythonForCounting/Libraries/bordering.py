@@ -45,12 +45,14 @@ def addborder_reflect(input_image, kernel_size):
 
     elif radius <= input_height and input_width:
 
-        # Sidernes kanter
+       
         for y in range(input_height):
+
+            # Fill middle of output image
             for x in range(input_width):
-                # Fill middle of output image
                 output[y + radius, x + radius] = input_image[y, x]
 
+            # Sidernes kanter
             for x in range(radius):
                 # Højre
                 output[(radius) + y, (output_width - 1) - x] = input_image[y,(input_width - radius) + x]
