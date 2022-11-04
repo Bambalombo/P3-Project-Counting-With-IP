@@ -131,12 +131,12 @@ for image in imagePyramide:
         #Vinduet kan godt blive lavet halvt uden for billedet, hvis dette ikke er ønsket kan vi skippe den beregning i loopet men det er lige en diskussion vi skal have i gruppen
         if(window.shape[0] != windowSize[0] or window.shape[1] != windowSize[1]):
             continue
+        #Lav vores image processing her
         #tegner en rektangel der går hen over billedet for illustrating purposes
         clone = image.copy()
         cv.rectangle(clone, (x, y), (x + windowSize[1], y + windowSize[0]), (0, 255, 0), 2)
         cv.imshow("window", clone)
         cv.waitKey(1)
-        time.sleep(0.05)
 
 cv.waitKey(0)
 cv.destroyAllWindows()
