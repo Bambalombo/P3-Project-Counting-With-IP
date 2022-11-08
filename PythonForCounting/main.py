@@ -1,4 +1,6 @@
 # Importer OpenCV og numpy
+import time
+
 import cv2 as cv
 import numpy as np
 from collections import deque
@@ -9,6 +11,32 @@ from Libraries import Thresholding as th
 from Libraries import bordering as bd
 from Libraries import Outlining as outl
 from Libraries import FeatureMatching as fm
+
+
+def makeImagePyramide(startingImage, scale, minWidth):
+    """
+    Returnere en pyramidegenerator, det vil sige den returnere et objekt man kan loope over, som så returnerer hvert enkelt billede
+    :param startingImage: startsbilledet
+    :param scale: hvor meget mindre størrelsen skal blive pr. spring
+    :param minWidth: hvor stort det mindste billede skal være
+    """
+    #yield gør så man kan loope over pyramiden, og få et objekt hver gang yield bliver kaldt
+    yield startingImage
+    currentImage = cv.resize(startingImage, (int(startingImage.shape[1] / scale), int(startingImage.shape[0] / scale)))
+    while currentImage.shape[1] > minWidth:
+        yield currentImage
+        currentImage = cv.resize(currentImage, (int(currentImage.shape[1] / scale), int(currentImage.shape[0] / scale)))
+
+def windowSlider(image, windowSize: tuple, stepSize):
+    """
+    Returnere en slicegenerator, som genererer et slice for hvert step igennem et billede, looper man over generatoren kan man så lave image processing på hvert slice.
+    :param image: Billedet man vil loope henover
+    :param windowSize: størrelesen på slicet (y,x)
+    :param stepSize: hvor stort et skridt man skal tage mellem hvert slice
+    """
+    for y in range(0,image.shape[0], stepSize):
+        for x in range(0, image.shape[1],stepSize):
+            yield (y,x, image[y:y+windowSize[0],x:x+windowSize[1]])
 
 def makeGrayscale(img):
     """
@@ -90,41 +118,24 @@ def grassfire(img, whitepixel=255):
     return blobs
 
 
-def temp_test():
-    """
-    En funktion der indeholder alle mine metodekald når jeg tester forskellige features undervejs.
-    -------
-    ### Kan slettes efter behov. ###
-    """
 
-    img1 = cv.imread('Images/fyrfadslys.jpg')
-    img2 = cv.imread('Images/DillerCoins.jpg')
-    img3 = cv.imread('Images/coins_evenlyLit.png')
-
-    img1_vector = fm.calculateImageHistogramBinVector(img1, 16, 500)
-    img2_vector = fm.calculateImageHistogramBinVector(img2, 16, 500)
-    img3_vector = fm.calculateImageHistogramBinVector(img3, 16, 500)
-
-    print(img1_vector.shape)
-    print(img2_vector.shape)
-    print(img3_vector.shape)
-
-    print((img1_vector.astype(int)))
-    print((img2_vector.astype(int)))
-    print((img3_vector.astype(int)))
-
-    print(f'1-2: {fm.calculateEuclidianDistance(img1_vector,img2_vector)}')
-    print(f'1-3: {fm.calculateEuclidianDistance(img1_vector,img3_vector)}')
-    print(f'2-3: {fm.calculateEuclidianDistance(img2_vector,img3_vector)}')
-
-    cv.imshow("img1",img1)
-    cv.imshow("img2",img2)
-    cv.imshow("img3",img3)
-
-    fm.showHistogram(img1,16,500)
-
-    cv.waitKey(0)
-    cv.destroyAllWindows()
+inputPicture = cv.imread('Images/coins_evenlyLit.png')
+imagePyramide  = makeImagePyramide(inputPicture,1.5,150)
+#definere vinduestørrelsen, tænker den skulle laves ud fra inputbilledet
+windowSize = (int(inputPicture.shape[0]/10), int(inputPicture.shape[1]/10))
+#looper over alle billeder i billedpyramiden, man behøver ikke at lave pyramiden først, den kan laves på samme linje hernede
+for image in imagePyramide:
+    #looper over alle vinduerne i billedet
+    for (y,x,window) in windowSlider(image,windowSize,int(windowSize[0]/2)):
+        #Vinduet kan godt blive lavet halvt uden for billedet, hvis dette ikke er ønsket kan vi skippe den beregning i loopet men det er lige en diskussion vi skal have i gruppen
+        if(window.shape[0] != windowSize[0] or window.shape[1] != windowSize[1]):
+            continue
+        #Lav vores image processing her
+        #tegner en rektangel der går hen over billedet for illustrating purposes
+        clone = image.copy()
+        cv.rectangle(clone, (x, y), (x + windowSize[1], y + windowSize[0]), (0, 255, 0), 2)
+        cv.imshow("window", clone)
+        cv.waitKey(1)
 
 
 temp_test()
