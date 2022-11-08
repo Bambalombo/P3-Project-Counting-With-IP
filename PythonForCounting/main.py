@@ -90,32 +90,41 @@ def grassfire(img, whitepixel=255):
     return blobs
 
 
-img1 = cv.imread('Images/fyrfadslys.jpg')
-img2 = cv.imread('Images/DillerCoins.jpg')
-img3 = cv.imread('Images/coins_evenlyLit.png')
+def temp_test():
+    """
+    En funktion der indeholder alle mine metodekald når jeg tester forskellige features undervejs.
+    -------
+    ### Kan slettes efter behov. ###
+    """
 
-img1_vector = fm.calculateImageHistogramBinVector(img1, 16, 500)
-img2_vector = fm.calculateImageHistogramBinVector(img2, 16, 500)
-img3_vector = fm.calculateImageHistogramBinVector(img3, 16, 500)
+    img1 = cv.imread('Images/fyrfadslys.jpg')
+    img2 = cv.imread('Images/DillerCoins.jpg')
+    img3 = cv.imread('Images/coins_evenlyLit.png')
 
-print(img1_vector.shape)
-print(img2_vector.shape)
-print(img3_vector.shape)
+    img1_vector = fm.calculateImageHistogramBinVector(img1, 16, 500)
+    img2_vector = fm.calculateImageHistogramBinVector(img2, 16, 500)
+    img3_vector = fm.calculateImageHistogramBinVector(img3, 16, 500)
 
-print((img1_vector.astype(int)))
-print((img2_vector.astype(int)))
-print((img3_vector.astype(int)))
+    print(img1_vector.shape)
+    print(img2_vector.shape)
+    print(img3_vector.shape)
 
-print(f'1-2: {fm.calculateEuclidianDistance(img1_vector,img2_vector)}')
-print(f'1-3: {fm.calculateEuclidianDistance(img1_vector,img3_vector)}')
-print(f'2-3: {fm.calculateEuclidianDistance(img2_vector,img3_vector)}')
+    print((img1_vector.astype(int)))
+    print((img2_vector.astype(int)))
+    print((img3_vector.astype(int)))
 
-cv.imshow("img1",img1)
-cv.imshow("img2",img2)
-cv.imshow("img3",img3)
+    print(f'1-2: {fm.calculateEuclidianDistance(img1_vector,img2_vector)}')
+    print(f'1-3: {fm.calculateEuclidianDistance(img1_vector,img3_vector)}')
+    print(f'2-3: {fm.calculateEuclidianDistance(img2_vector,img3_vector)}')
 
-fm.showHistogram(img1,16,500)
-#fm.showHistogram(img2,16,500)
+    cv.imshow("img1",img1)
+    cv.imshow("img2",img2)
+    cv.imshow("img3",img3)
 
-cv.waitKey(0)
-cv.destroyAllWindows()
+    fm.showHistogram(img1,16,500)
+
+    cv.waitKey(0)
+    cv.destroyAllWindows()
+
+
+temp_test()
