@@ -8,6 +8,7 @@ from matplotlib import pyplot as plt
 from Libraries import Thresholding as th
 from Libraries import bordering as bd
 from Libraries import Outlining as outl
+from Libraries import FeatureMatching as fm
 
 def makeGrayscale(img):
     """
@@ -18,7 +19,6 @@ def makeGrayscale(img):
     output = np.zeros((img.shape[0], img.shape[1]), dtype=np.uint8)
     output[:, :] = img[:, :, 0] * 0.114 + img[:, :, 1] * 0.587 + img[:, :, 2] * 0.299
     return output
-
 
 
 def edgeWithSobel(img):
@@ -42,7 +42,6 @@ def edgeWithSobel(img):
 
     output = cv.add(verticalApply, horizontalApply)
     return output
-
 
 
 def grassfire(img, whitepixel=255):
@@ -91,21 +90,32 @@ def grassfire(img, whitepixel=255):
     return blobs
 
 
-inputPicture = cv.imread('Images/coins_evenlyLit.png')
-cv.imshow('input', inputPicture)
-binary = th.makeImageBinaryIntensityThreshold(inputPicture, 0.5)
-cv.imshow('binary', binary)
-eroded = morph.erode(binary, 3)
-morphed = morph.close(eroded, 11)
-cv.imshow('morphed', morphed)
-outlined = outl.outlineFromBinary(morphed, 1)
+img1 = cv.imread('Images/fyrfadslys.jpg')
+img2 = cv.imread('Images/DillerCoins.jpg')
+img3 = cv.imread('Images/coins_evenlyLit.png')
 
-cv.imshow('outlined', outlined)
+img1_vector = fm.calculateImageHistogramBinVector(img1, 16, 500)
+img2_vector = fm.calculateImageHistogramBinVector(img2, 16, 500)
+img3_vector = fm.calculateImageHistogramBinVector(img3, 16, 500)
 
-blobs = grassfire(outlined)
+print(img1_vector.shape)
+print(img2_vector.shape)
+print(img3_vector.shape)
 
-print(blobs)
-print(len(blobs))
+print((img1_vector.astype(int)))
+print((img2_vector.astype(int)))
+print((img3_vector.astype(int)))
+
+print(f'1-2: {fm.calculateEuclidianDistance(img1_vector,img2_vector)}')
+print(f'1-3: {fm.calculateEuclidianDistance(img1_vector,img3_vector)}')
+print(f'2-3: {fm.calculateEuclidianDistance(img2_vector,img3_vector)}')
+
+cv.imshow("img1",img1)
+cv.imshow("img2",img2)
+cv.imshow("img3",img3)
+
+fm.showHistogram(img1,16,500)
+#fm.showHistogram(img2,16,500)
 
 cv.waitKey(0)
 cv.destroyAllWindows()
