@@ -10,6 +10,7 @@ from matplotlib import pyplot as plt
 from Libraries import Thresholding as th
 from Libraries import bordering as bd
 from Libraries import Outlining as outl
+from Libraries import FeatureMatching as fm
 
 
 def makeImagePyramide(startingImage, scale, minWidth):
@@ -48,7 +49,6 @@ def makeGrayscale(img):
     return output
 
 
-
 def edgeWithSobel(img):
     kernelRadius = 1
     sobelVerKernel = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], dtype=np.uint8)
@@ -70,7 +70,6 @@ def edgeWithSobel(img):
 
     output = cv.add(verticalApply, horizontalApply)
     return output
-
 
 
 def grassfire(img, whitepixel=255):
@@ -138,5 +137,5 @@ for image in imagePyramide:
         cv.imshow("window", clone)
         cv.waitKey(1)
 
-cv.waitKey(0)
-cv.destroyAllWindows()
+
+temp_test()

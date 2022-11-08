@@ -24,6 +24,7 @@ def illumination_lpf_mean_hsl(input_image, kernel_size=1):
 
     return output
 
+
 def illumination_low_pass_homomorphic(input_image, kernel_size, kernel=None):
     """
     https://clouard.users.greyc.fr/Pantheon/experiments/illumination-correction/index-en.html
