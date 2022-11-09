@@ -118,24 +118,76 @@ def grassfire(img, whitepixel=255):
     return blobs
 
 
+def temp_test():
+    """
+    En funktion der indeholder alle mine metodekald når jeg tester forskellige features undervejs.
+    -------
+    ### Kan slettes efter behov. ###
+    """
 
-inputPicture = cv.imread('Images/coins_evenlyLit.png')
-imagePyramide  = makeImagePyramide(inputPicture,1.5,150)
+    img1 = cv.imread('Images/fyrfadslys.jpg')
+    img2 = cv.imread('Images/DillerCoins.jpg')
+    img3 = cv.imread('Images/coins_evenlyLit.png')
+
+    img1_vector = fm.calculateImageHistogramBinVector(img1, 16, 500)
+    img2_vector = fm.calculateImageHistogramBinVector(img2, 16, 500)
+    img3_vector = fm.calculateImageHistogramBinVector(img3, 16, 500)
+
+    print(img1_vector.shape)
+    print(img2_vector.shape)
+    print(img3_vector.shape)
+
+    print((img1_vector.astype(int)))
+    print((img2_vector.astype(int)))
+    print((img3_vector.astype(int)))
+
+    print(f'1-2: {fm.calculateEuclidianDistance(img1_vector,img2_vector)}')
+    print(f'1-3: {fm.calculateEuclidianDistance(img1_vector,img3_vector)}')
+    print(f'2-3: {fm.calculateEuclidianDistance(img2_vector,img3_vector)}')
+
+    cv.imshow("img1",img1)
+    cv.imshow("img2",img2)
+    cv.imshow("img3",img3)
+
+    fm.showHistogram(img1,16,500)
+
+    cv.waitKey(0)
+    cv.destroyAllWindows()
+
+
+inputPicture = cv.imread('Images/fyrfadslys.jpg')
+userSlice = cv.imread('Images/red_candle_cutout.jpg')
+
+sliceFeatureVector = fm.calculateImageHistogramBinVector(userSlice,16,500)
+
+imagePyramid  = makeImagePyramide(inputPicture, 1.5, 150)
 #definere vinduestørrelsen, tænker den skulle laves ud fra inputbilledet
-windowSize = (int(inputPicture.shape[0]/10), int(inputPicture.shape[1]/10))
+windowSize = (int(userSlice.shape[0]), int(userSlice.shape[1]))
 #looper over alle billeder i billedpyramiden, man behøver ikke at lave pyramiden først, den kan laves på samme linje hernede
-for image in imagePyramide:
+
+for image in imagePyramid:
+    hit_count = 0
     #looper over alle vinduerne i billedet
-    for (y,x,window) in windowSlider(image,windowSize,int(windowSize[0]/2)):
+    for (y,x,window) in windowSlider(image,windowSize,int(windowSize[0]/3)):
         #Vinduet kan godt blive lavet halvt uden for billedet, hvis dette ikke er ønsket kan vi skippe den beregning i loopet men det er lige en diskussion vi skal have i gruppen
         if(window.shape[0] != windowSize[0] or window.shape[1] != windowSize[1]):
             continue
         #Lav vores image processing her
+        currentWindowVector = fm.calculateImageHistogramBinVector(window, 16, 500)
+        euc_dist = fm.calculateEuclidianDistance(sliceFeatureVector, currentWindowVector)
+        if (euc_dist < 1000):
+            hit_count += 1
+            print(f'{y,x} {euc_dist}')
+            hit_img = window
+            cv.putText(hit_img, str(euc_dist), (10, 10), cv.FONT_HERSHEY_PLAIN, 1, (0, 0, 255))
+            cv.imshow(f'hit: {y,x}',window)
+
         #tegner en rektangel der går hen over billedet for illustrating purposes
         clone = image.copy()
         cv.rectangle(clone, (x, y), (x + windowSize[1], y + windowSize[0]), (0, 255, 0), 2)
         cv.imshow("window", clone)
         cv.waitKey(1)
+    print(f'found: {hit_count} hits')
 
-
-temp_test()
+cv.waitKey(0)
+cv.destroyAllWindows()

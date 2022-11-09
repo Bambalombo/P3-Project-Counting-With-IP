@@ -2,7 +2,6 @@ import cv2 as cv
 import numpy as np
 import math
 
-
 def convolve_2D(image, kernel_size=3, filter_type=0, standard_deviation = 1):
     """
     - This method is for applying a kernel on an image. The kernel is convoluted over the image and applied to every pixel. 
