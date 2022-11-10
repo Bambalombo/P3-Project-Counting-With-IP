@@ -117,7 +117,54 @@ def grassfire(img, whitepixel=255):
                     blobs.append(startBurning([y + 1, x + 1], burningImage))
     return blobs
 
+def nonMaximumSupression(outlines, threshold, scores = None):
+    boxes = np.array(outlines)
+    if not hits:
+        return []
+    #vores liste over alle hits der er tilbage efter supression
+    realHits = []
 
+    #vores bounding box koordinater
+    xleft = boxes[:,0]
+    xright = boxes[:,1]
+    yleft = boxes[:,2]
+    yright = boxes[:,3]
+
+    # beregner arealet af alle vores boundingboxes og gemmer dem
+    areaOfBoundingBoxes = (xright - xleft + 1) * (yright - yleft + 1)
+    # laver et midlertidigt array som vi sortere
+    # enten efter nederste højre boundingbox, eller efter score
+    # det er midlertidigt, så vi kan bruge det som kondition i vores whileloop,
+    # mens vi fjerne alle boundingboxes
+    tempSortingArray = yleft
+    if scores is not None:
+        tempSortingArray = scores
+
+    #argsort giver os et array af indexer med den laveste som index på plads nr. 0,
+    # men vi vil gerne have det omvendt så det er højeste index som 0, derfor omvender vi arrayet
+    tempSortingArray = np.argsort(tempSortingArray, kind='stable')[::-1]
+    print(scores)
+    print(tempSortingArray)
+
+    #mens vi ikke har kontrolleret alle boundingboxes
+    while len(tempSortingArray) > 0:
+        nextDetectionIndex = len(tempSortingArray) - 1
+        nd = tempSortingArray[nextDetectionIndex]
+        realHits.append(nd)
+
+    return realHits
+def returnScoreAndImageWithOutlines(image, hits):
+    if not hits:
+        return 0,image
+    scores = []
+    outlines = []
+    for (dist,outline) in hits:
+        scores.append(dist)
+        outlines.append(outline)
+    nonMaximumSupression(outlines ,0.3, scores)
+
+
+    return
 def temp_test():
     """
     En funktion der indeholder alle mine metodekald når jeg tester forskellige features undervejs.
@@ -163,10 +210,11 @@ sliceFeatureVector = fm.calculateImageHistogramBinVector(userSlice,16,500)
 imagePyramid  = makeImagePyramide(inputPicture, 1.5, 150)
 #definere vinduestørrelsen, tænker den skulle laves ud fra inputbilledet
 windowSize = (int(userSlice.shape[0]), int(userSlice.shape[1]))
-#looper over alle billeder i billedpyramiden, man behøver ikke at lave pyramiden først, den kan laves på samme linje hernede
 
+#vores liste over hits
+hits = []
+#looper over alle billeder i billedpyramiden, man behøver ikke at lave pyramiden først, den kan laves på samme linje hernede
 for image in imagePyramid:
-    hit_count = 0
     #looper over alle vinduerne i billedet
     for (y,x,window) in windowSlider(image,windowSize,int(windowSize[0]/3)):
         #Vinduet kan godt blive lavet halvt uden for billedet, hvis dette ikke er ønsket kan vi skippe den beregning i loopet men det er lige en diskussion vi skal have i gruppen
@@ -176,18 +224,12 @@ for image in imagePyramid:
         currentWindowVector = fm.calculateImageHistogramBinVector(window, 16, 500)
         euc_dist = fm.calculateEuclidianDistance(sliceFeatureVector, currentWindowVector)
         if (euc_dist < 1000):
-            hit_count += 1
-            print(f'{y,x} {euc_dist}')
-            hit_img = window
-            cv.putText(hit_img, str(euc_dist), (10, 10), cv.FONT_HERSHEY_PLAIN, 1, (0, 0, 255))
-            cv.imshow(f'hit: {y,x}',window)
-
+            hits.append([euc_dist,[x,x+window.shape[1],y,y+window.shape[0]]])
         #tegner en rektangel der går hen over billedet for illustrating purposes
-        clone = image.copy()
-        cv.rectangle(clone, (x, y), (x + windowSize[1], y + windowSize[0]), (0, 255, 0), 2)
-        cv.imshow("window", clone)
-        cv.waitKey(1)
-    print(f'found: {hit_count} hits')
-
+        # clone = image.copy()
+        # cv.rectangle(clone, (x, y), (x + windowSize[1], y + windowSize[0]), (0, 255, 0), 2)
+        # cv.imshow("window", clone)
+        # cv.waitKey(1)
+returnScoreAndImageWithOutlines(inputPicture,hits)
 cv.waitKey(0)
 cv.destroyAllWindows()
