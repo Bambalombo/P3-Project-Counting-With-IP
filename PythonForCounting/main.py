@@ -118,7 +118,7 @@ def grassfire(img, whitepixel=255):
     return blobs
 
 def nonMaximumSupression(outlines, threshold, scores = None):
-    boxes = np.array(outlines)
+    boxes = np.array(outlines).astype("float")
     if not hits:
         return []
     #vores liste over alle hits der er tilbage efter supression
@@ -143,17 +143,38 @@ def nonMaximumSupression(outlines, threshold, scores = None):
     #argsort giver os et array af indexer med den laveste som index på plads nr. 0,
     # men vi vil gerne have det omvendt så det er højeste index som 0, derfor omvender vi arrayet
     tempSortingArray = np.argsort(tempSortingArray, kind='stable')[::-1]
-    print(scores)
-    print(tempSortingArray)
 
     #mens vi ikke har kontrolleret alle boundingboxes
     while len(tempSortingArray) > 0:
-        nextDetectionIndex = len(tempSortingArray) - 1
-        nd = tempSortingArray[nextDetectionIndex]
-        realHits.append(nd)
+        lastTempIndex = len(tempSortingArray) - 1
+        ndi = tempSortingArray[lastTempIndex]
+        realHits.append(ndi)
 
-    return realHits
-def returnScoreAndImageWithOutlines(image, hits):
+        # Vi finder et array af de mindste og største x,y koordinator, for at finde alle vores overlap
+        # af vores vinduer
+        overlapLeftX = np.maximum(xleft[ndi], xleft[tempSortingArray[:lastTempIndex]])
+        overlapRightX = np.minimum(xright[ndi], xright[tempSortingArray[:lastTempIndex]])
+        overlapLeftY = np.maximum(yleft[ndi], yleft[tempSortingArray[:lastTempIndex]])
+        overlapRightY = np.minimum(yright[ndi], yright[tempSortingArray[:lastTempIndex]])
+
+        # så laver vi et array som holder alle bredder og højder på vores overlaps
+        # der ligges 1 til for at få den rent faktiske bredde, da man trækker pixelpositioner fra hinanden
+        overlapWidths = np.maximum(0, overlapRightX - overlapLeftX + 1)
+        overlapHeights = np.maximum(0, overlapRightY - overlapLeftY + 1)
+
+        #arealet af alle de overlappende områder beregnes og divideres med det oprindelige array af arealer
+        #for at få hvor meget areal der er overlap, mod hvor meget areal der rent faktisk var i boundingboxen
+        overlapAreaRatio = (overlapWidths * overlapHeights) / areaOfBoundingBoxes[tempSortingArray[:lastTempIndex]]
+
+        #slet alle indexes hvor overlapratio er større end threshold
+        tempSortingArray = np.delete(tempSortingArray, np.concatenate(([lastTempIndex], np.where(overlapAreaRatio > threshold)[0])))
+
+    #finder vores rigtigte outlines og scores or returnerer dem zippet
+    realScores = np.array(scores)[realHits]
+    realOutlines = boxes[realHits].astype("int")
+    return realScores, realOutlines
+
+def returnScoreAndImageWithOutlines(image, hits, nmsTreshhold = 0.3):
     if not hits:
         return 0,image
     scores = []
@@ -161,10 +182,12 @@ def returnScoreAndImageWithOutlines(image, hits):
     for (dist,outline) in hits:
         scores.append(dist)
         outlines.append(outline)
-    nonMaximumSupression(outlines ,0.3, scores)
+    outputImage = image.copy()
+    hitScores, hitOutlines = nonMaximumSupression(outlines ,nmsTreshhold, scores)
+    for (startx, endx, starty, endy) in hitOutlines:
+        cv.rectangle(outputImage, (startx,starty), (endx,endy), (0,255,0), 2)
 
-
-    return
+    return len(hitScores), outputImage
 def temp_test():
     """
     En funktion der indeholder alle mine metodekald når jeg tester forskellige features undervejs.
@@ -202,34 +225,42 @@ def temp_test():
     cv.destroyAllWindows()
 
 
-inputPicture = cv.imread('Images/fyrfadslys.jpg')
-userSlice = cv.imread('Images/red_candle_cutout.jpg')
+inputPicture = cv.imread('Images/DillerCoins.jpg')
+inputPicture = cv.resize(inputPicture, (int(inputPicture.shape[1]/10), int(inputPicture.shape[0]/10)))
+userSlice = cv.imread('Images/CoinCutout.png')
+userSlice = cv.resize(userSlice, (int(userSlice.shape[1]/10), int(userSlice.shape[0]/10)))
 
 sliceFeatureVector = fm.calculateImageHistogramBinVector(userSlice,16,500)
-
-imagePyramid  = makeImagePyramide(inputPicture, 1.5, 150)
+scaleRatio = 1.5
+imagePyramid  = makeImagePyramide(inputPicture, scaleRatio, 150)
 #definere vinduestørrelsen, tænker den skulle laves ud fra inputbilledet
 windowSize = (int(userSlice.shape[0]), int(userSlice.shape[1]))
 
 #vores liste over hits
 hits = []
 #looper over alle billeder i billedpyramiden, man behøver ikke at lave pyramiden først, den kan laves på samme linje hernede
-for image in imagePyramid:
+for i, image in enumerate(imagePyramid):
     #looper over alle vinduerne i billedet
-    for (y,x,window) in windowSlider(image,windowSize,int(windowSize[0]/3)):
+    for (y,x,window) in windowSlider(image,windowSize,int(windowSize[0]/6)):
         #Vinduet kan godt blive lavet halvt uden for billedet, hvis dette ikke er ønsket kan vi skippe den beregning i loopet men det er lige en diskussion vi skal have i gruppen
         if(window.shape[0] != windowSize[0] or window.shape[1] != windowSize[1]):
             continue
         #Lav vores image processing her
         currentWindowVector = fm.calculateImageHistogramBinVector(window, 16, 500)
         euc_dist = fm.calculateEuclidianDistance(sliceFeatureVector, currentWindowVector)
-        if (euc_dist < 1000):
-            hits.append([euc_dist,[x,x+window.shape[1],y,y+window.shape[0]]])
+        if (euc_dist < 1200):
+            if i > 0:
+                hits.append([euc_dist, [x*i*scaleRatio, x*i*scaleRatio + (window.shape[1]*i*scaleRatio), y*i*scaleRatio, y*i*scaleRatio + (window.shape[0]*i*scaleRatio)]])
+            else:
+                hits.append([euc_dist,[x,x+window.shape[1],y,y+window.shape[0]]])
         #tegner en rektangel der går hen over billedet for illustrating purposes
         # clone = image.copy()
         # cv.rectangle(clone, (x, y), (x + windowSize[1], y + windowSize[0]), (0, 255, 0), 2)
         # cv.imshow("window", clone)
         # cv.waitKey(1)
-returnScoreAndImageWithOutlines(inputPicture,hits)
+score, doneImage = returnScoreAndImageWithOutlines(inputPicture,hits, 0.1)
+print(score)
+cv.imshow('input', inputPicture)
+cv.imshow('output', doneImage)
 cv.waitKey(0)
 cv.destroyAllWindows()
