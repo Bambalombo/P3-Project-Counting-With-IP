@@ -225,10 +225,10 @@ def temp_test():
     cv.destroyAllWindows()
 
 
-inputPicture = cv.imread('Images/DillerCoins.jpg')
-inputPicture = cv.resize(inputPicture, (int(inputPicture.shape[1]/10), int(inputPicture.shape[0]/10)))
-userSlice = cv.imread('Images/CoinCutout.png')
-userSlice = cv.resize(userSlice, (int(userSlice.shape[1]/10), int(userSlice.shape[0]/10)))
+inputPicture = cv.imread('Images/fyrfadslys.jpg')
+#inputPicture = cv.resize(inputPicture, (int(inputPicture.shape[1]/10), int(inputPicture.shape[0]/10)))
+userSlice = cv.imread('Images/red_candle_cutout.jpg')
+#userSlice = cv.resize(userSlice, (int(userSlice.shape[1]/10), int(userSlice.shape[0]/10)))
 
 sliceFeatureVector = fm.calculateImageHistogramBinVector(userSlice,16,500)
 scaleRatio = 1.5
@@ -248,7 +248,7 @@ for i, image in enumerate(imagePyramid):
         #Lav vores image processing her
         currentWindowVector = fm.calculateImageHistogramBinVector(window, 16, 500)
         euc_dist = fm.calculateEuclidianDistance(sliceFeatureVector, currentWindowVector)
-        if (euc_dist < 1200):
+        if (euc_dist < 900):
             if i > 0:
                 hits.append([euc_dist, [x*i*scaleRatio, x*i*scaleRatio + (window.shape[1]*i*scaleRatio), y*i*scaleRatio, y*i*scaleRatio + (window.shape[0]*i*scaleRatio)]])
             else:
