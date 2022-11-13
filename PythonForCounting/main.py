@@ -11,7 +11,7 @@ from Libraries import Thresholding as th
 from Libraries import bordering as bd
 from Libraries import Outlining as outl
 from Libraries import FeatureMatching as fm
-
+import time
 
 def makeImagePyramide(startingImage, scale, minWidth):
     """
@@ -119,7 +119,7 @@ def grassfire(img, whitepixel=255):
 
 def nonMaximumSupression(outlines, threshold, scores = None):
     boxes = np.array(outlines).astype("float")
-    if not hits:
+    if not outlines:
         return []
     #vores liste over alle hits der er tilbage efter supression
     realHits = []
@@ -224,43 +224,47 @@ def temp_test():
     cv.waitKey(0)
     cv.destroyAllWindows()
 
+def main():
+    inputPicture = cv.imread('Images/fyrfadslys.jpg')
+    #inputPicture = cv.resize(inputPicture, (int(inputPicture.shape[1]/10), int(inputPicture.shape[0]/10)))
+    userSlice = cv.imread('Images/red_candle_cutout.jpg')
+    #userSlice = cv.resize(userSlice, (int(userSlice.shape[1]/10), int(userSlice.shape[0]/10)))
 
-inputPicture = cv.imread('Images/fyrfadslys.jpg')
-#inputPicture = cv.resize(inputPicture, (int(inputPicture.shape[1]/10), int(inputPicture.shape[0]/10)))
-userSlice = cv.imread('Images/red_candle_cutout.jpg')
-#userSlice = cv.resize(userSlice, (int(userSlice.shape[1]/10), int(userSlice.shape[0]/10)))
+    sliceFeatureVector = fm.calculateImageHistogramBinVector(userSlice,16,500)
+    scaleRatio = 1.5
+    imagePyramid  = makeImagePyramide(inputPicture, scaleRatio, 150)
+    #definere vinduestørrelsen, tænker den skulle laves ud fra inputbilledet
+    windowSize = (int(userSlice.shape[0]), int(userSlice.shape[1]))
 
-sliceFeatureVector = fm.calculateImageHistogramBinVector(userSlice,16,500)
-scaleRatio = 1.5
-imagePyramid  = makeImagePyramide(inputPicture, scaleRatio, 150)
-#definere vinduestørrelsen, tænker den skulle laves ud fra inputbilledet
-windowSize = (int(userSlice.shape[0]), int(userSlice.shape[1]))
+    #vores liste over hits
+    hits = []
 
-#vores liste over hits
-hits = []
-#looper over alle billeder i billedpyramiden, man behøver ikke at lave pyramiden først, den kan laves på samme linje hernede
-for i, image in enumerate(imagePyramid):
-    #looper over alle vinduerne i billedet
-    for (y,x,window) in windowSlider(image,windowSize,int(windowSize[0]/6)):
-        #Vinduet kan godt blive lavet halvt uden for billedet, hvis dette ikke er ønsket kan vi skippe den beregning i loopet men det er lige en diskussion vi skal have i gruppen
-        if(window.shape[0] != windowSize[0] or window.shape[1] != windowSize[1]):
-            continue
-        #Lav vores image processing her
-        currentWindowVector = fm.calculateImageHistogramBinVector(window, 16, 500)
-        euc_dist = fm.calculateEuclidianDistance(sliceFeatureVector, currentWindowVector)
-        if (euc_dist < 900):
-            if i > 0:
-                hits.append([euc_dist, [x*i*scaleRatio, x*i*scaleRatio + (window.shape[1]*i*scaleRatio), y*i*scaleRatio, y*i*scaleRatio + (window.shape[0]*i*scaleRatio)]])
-            else:
-                hits.append([euc_dist,[x,x+window.shape[1],y,y+window.shape[0]]])
-        #tegner en rektangel der går hen over billedet for illustrating purposes
-        # clone = image.copy()
-        # cv.rectangle(clone, (x, y), (x + windowSize[1], y + windowSize[0]), (0, 255, 0), 2)
-        # cv.imshow("window", clone)
-        # cv.waitKey(1)
-score, doneImage = returnScoreAndImageWithOutlines(inputPicture,hits, 0.1)
-print(score)
-cv.imshow('input', inputPicture)
-cv.imshow('output', doneImage)
-cv.waitKey(0)
-cv.destroyAllWindows()
+    #looper over alle billeder i billedpyramiden, man behøver ikke at lave pyramiden først, den kan laves på samme linje hernede
+    for i, image in enumerate(imagePyramid):
+        #looper over alle vinduerne i billedet
+        for (y,x,window) in windowSlider(image,windowSize,int(windowSize[0]/3)):
+            #Vinduet kan godt blive lavet halvt uden for billedet, hvis dette ikke er ønsket kan vi skippe den beregning i loopet men det er lige en diskussion vi skal have i gruppen
+            if(window.shape[0] != windowSize[0] or window.shape[1] != windowSize[1]):
+                continue
+            #Lav vores image processing her
+            currentWindowVector = fm.calculateImageHistogramBinVector(window, 16, 500)
+            euc_dist = fm.calculateEuclidianDistance(sliceFeatureVector, currentWindowVector)
+            if (euc_dist < 900):
+                if i > 0:
+                    hits.append([euc_dist, [x*i*scaleRatio, x*i*scaleRatio + (window.shape[1]*i*scaleRatio), y*i*scaleRatio, y*i*scaleRatio + (window.shape[0]*i*scaleRatio)]])
+                else:
+                    hits.append([euc_dist,[x,x+window.shape[1],y,y+window.shape[0]]])
+
+    score, doneImage = returnScoreAndImageWithOutlines(inputPicture,hits, 0.1)
+    print(score)
+    cv.imshow('input', inputPicture)
+    cv.imshow('output', doneImage)
+
+
+if __name__ == "__main__":
+    startTime = time.time()
+    main()
+    print(f'Tid = {time.time() - startTime} s')
+    cv.waitKey(0)
+    cv.destroyAllWindows()
+
