@@ -258,7 +258,9 @@ def main():
     score, doneImage = returnScoreAndImageWithOutlines(inputPicture,hits, 0.1)
     print(score)
     cv.imshow('input', inputPicture)
+    cv.imshow('userSlice',userSlice)
     cv.imshow('output', doneImage)
+
 
 
 if __name__ == "__main__":
