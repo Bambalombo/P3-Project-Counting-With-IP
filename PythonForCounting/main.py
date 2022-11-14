@@ -225,9 +225,9 @@ def temp_test():
     cv.destroyAllWindows()
 
 def main():
-    inputPicture = cv.imread('Images/fyrfadslys.jpg')
+    inputPicture = cv.imread('Images/candlelightsOnVaryingBackground.jpg')
     #inputPicture = cv.resize(inputPicture, (int(inputPicture.shape[1]/10), int(inputPicture.shape[0]/10)))
-    userSlice = cv.imread('Images/red_candle_cutout.jpg')
+    userSlice = cv.imread('Images/redCandleCutoutVaryingBackground.png')
     #userSlice = cv.resize(userSlice, (int(userSlice.shape[1]/10), int(userSlice.shape[0]/10)))
 
     sliceFeatureVector = fm.calculateImageHistogramBinVector(userSlice,16,500)
@@ -249,7 +249,7 @@ def main():
             #Lav vores image processing her
             currentWindowVector = fm.calculateImageHistogramBinVector(window, 16, 500)
             euc_dist = fm.calculateEuclidianDistance(sliceFeatureVector, currentWindowVector)
-            if (euc_dist < 900):
+            if (euc_dist < 700):
                 if i > 0:
                     hits.append([euc_dist, [x*i*scaleRatio, x*i*scaleRatio + (window.shape[1]*i*scaleRatio), y*i*scaleRatio, y*i*scaleRatio + (window.shape[0]*i*scaleRatio)]])
                 else:
@@ -260,8 +260,6 @@ def main():
     cv.imshow('input', inputPicture)
     cv.imshow('userSlice',userSlice)
     cv.imshow('output', doneImage)
-
-
 
 if __name__ == "__main__":
     startTime = time.time()
