@@ -184,8 +184,9 @@ def returnScoreAndImageWithOutlines(image, hits, nmsTreshhold = 0.3):
         outlines.append(outline)
     outputImage = image.copy()
     hitScores, hitOutlines = nonMaximumSupression(outlines ,nmsTreshhold, scores)
-    for (startx, endx, starty, endy) in hitOutlines:
+    for i, (startx, endx, starty, endy) in enumerate(hitOutlines):
         cv.rectangle(outputImage, (startx,starty), (endx,endy), (0,255,0), 2)
+        cv.putText(outputImage,f'Score: {int(scores[i])}', (startx,starty),cv.FONT_HERSHEY_PLAIN, 1, (255,255,255))
 
     return len(hitScores), outputImage
 def temp_test():
