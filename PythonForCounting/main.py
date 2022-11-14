@@ -252,7 +252,7 @@ def main():
             euc_dist = fm.calculateEuclidianDistance(sliceFeatureVector, currentWindowVector)
             if (euc_dist < 900):
                 if i > 0:
-                    hits.append([euc_dist, [x*i*scaleRatio, x*i*scaleRatio + (window.shape[1]*i*scaleRatio), y*i*scaleRatio, y*i*scaleRatio + (window.shape[0]*i*scaleRatio)]])
+                    hits.append([euc_dist, [x*(scaleRatio**i), x*(scaleRatio**i) + (window.shape[1]*(scaleRatio**i)), y*(scaleRatio**i), y*(scaleRatio**i) + (window.shape[0]*(scaleRatio**i))]])
                 else:
                     hits.append([euc_dist,[x,x+window.shape[1],y,y+window.shape[0]]])
 
