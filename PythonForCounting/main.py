@@ -249,7 +249,7 @@ def main():
             #Lav vores image processing her
             currentWindowVector = fm.calculateImageHistogramBinVector(window, 16, 500)
             euc_dist = fm.calculateEuclidianDistance(sliceFeatureVector, currentWindowVector)
-            if (euc_dist < 700):
+            if (euc_dist < 900):
                 if i > 0:
                     hits.append([euc_dist, [x*i*scaleRatio, x*i*scaleRatio + (window.shape[1]*i*scaleRatio), y*i*scaleRatio, y*i*scaleRatio + (window.shape[0]*i*scaleRatio)]])
                 else:
