@@ -184,8 +184,9 @@ def returnScoreAndImageWithOutlines(image, hits, nmsTreshhold = 0.3):
         outlines.append(outline)
     outputImage = image.copy()
     hitScores, hitOutlines = nonMaximumSupression(outlines ,nmsTreshhold, scores)
-    for (startx, endx, starty, endy) in hitOutlines:
+    for i, (startx, endx, starty, endy) in enumerate(hitOutlines):
         cv.rectangle(outputImage, (startx,starty), (endx,endy), (0,255,0), 2)
+        cv.putText(outputImage,f'Score: {int(scores[i])}', (startx,starty),cv.FONT_HERSHEY_PLAIN, 1, (255,255,255))
 
     return len(hitScores), outputImage
 def temp_test():
@@ -249,9 +250,9 @@ def main():
             #Lav vores image processing her
             currentWindowVector = fm.calculateImageHistogramBinVector(window, 16, 500)
             euc_dist = fm.calculateEuclidianDistance(sliceFeatureVector, currentWindowVector)
-            if (euc_dist < 700):
+            if (euc_dist < 900):
                 if i > 0:
-                    hits.append([euc_dist, [x*i*scaleRatio, x*i*scaleRatio + (window.shape[1]*i*scaleRatio), y*i*scaleRatio, y*i*scaleRatio + (window.shape[0]*i*scaleRatio)]])
+                    hits.append([euc_dist, [x*(scaleRatio**i), x*(scaleRatio**i) + (window.shape[1]*(scaleRatio**i)), y*(scaleRatio**i), y*(scaleRatio**i) + (window.shape[0]*(scaleRatio**i))]])
                 else:
                     hits.append([euc_dist,[x,x+window.shape[1],y,y+window.shape[0]]])
 
