@@ -35,8 +35,8 @@ def windowSlider(image, windowSize: tuple, stepSize):
     :param stepSize: hvor stort et skridt man skal tage mellem hvert slice
     """
     for y in range(0,image.shape[0], stepSize):
-        for x in range(0, image.shape[1],stepSize):
-            yield (y,x, image[y:y+windowSize[0],x:x+windowSize[1]])
+        for x in range(0, image.shape[1], stepSize):
+            yield (y,x, image[y:y+windowSize[0], x:x+windowSize[1]])
 
 def makeGrayscale(img):
     """
