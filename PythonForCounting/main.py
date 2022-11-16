@@ -21,8 +21,7 @@ def makeImagePyramide(startingImage, scale, minWidth):
     :param minWidth: hvor stort det mindste billede skal være
     """
     #yield gør så man kan loope over pyramiden, og få et objekt hver gang yield bliver kaldt
-    yield startingImage
-    currentImage = cv.resize(startingImage, (int(startingImage.shape[1] / scale), int(startingImage.shape[0] / scale)))
+    currentImage = startingImage
     while currentImage.shape[1] > minWidth:
         yield currentImage
         currentImage = cv.resize(currentImage, (int(currentImage.shape[1] / scale), int(currentImage.shape[0] / scale)))
