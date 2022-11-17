@@ -262,16 +262,43 @@ def main():
     cv.imshow('output', doneImage)
 
 def temp_main():
-    img = cv.imread('Images/scarf.jpeg')
-    img = cv.resize(img,(int(img.shape[1]/5),int(img.shape[0]/5)))
-    img_corrected = el.illumination_mean_filter_BGR(img,151)
-    cv.imshow('BGR_corrected',img_corrected)
+    img = cv.imread('Images/coins_evenlyLit.png')
+    img_gs = makeGrayscale(img)
+    img_binary = th.makeImageBinaryIntensityThreshold(img_gs,0.5)
+    img_binary_closed = morph.close(img_binary,5)
+    img_binary_open = morph.open(img_binary_closed,5)
+    img_output = cv.cvtColor(img_binary_open,cv.COLOR_GRAY2BGR)
 
-    img_grayscale = cv.imread('Images/scarf.jpeg',0)
-    img_grayscale = cv.resize(img_grayscale,(int(img_grayscale.shape[1]/5),int(img_grayscale.shape[0]/5)))
-    img_grayscale_corrected = el.illumination_mean_filter_2D(img_grayscale,151)
-    cv.imshow('grayscale_corrected',img_grayscale_corrected)
+    blobs = grassfire(img_binary_open)
+    blob_count = len(blobs)
 
+    for i, blob in enumerate(blobs):
+        min_y = img_binary_open.shape[0]
+        min_x = img_binary_open.shape[1]
+        max_y = 0
+        max_x = 0
+        for j, coordinate in enumerate(blob):
+            if (coordinate[0] > max_y):
+                max_y = coordinate[0]
+            if (coordinate[0] < min_y):
+                min_y = coordinate[0]
+            if (coordinate[1] > max_x):
+                max_x = coordinate[1]
+            if (coordinate[1] < min_x):
+                min_x = coordinate[1]
+        cv.rectangle(img_output,(min_x-3,min_y-3),(max_x+3,max_y+3),(0,255,0),2)
+        cv.putText(img_output, f'{i+1}:', (min_x, min_y - 8), cv.FONT_HERSHEY_TRIPLEX, 0.8, (0, 255, 0))
+        print(f'blob {i+1}: min coord: ({min_x,min_y}), max coord: ({max_x,max_y})')
+
+    print(f'blob_count: {blob_count}')
+
+    #cv.imshow('img',img)
+    #cv.imshow('gs',img_gs)
+    #cv.imshow('binary',img_binary)
+    #cv.imshow('closed',img_binary_closed)
+    cv.imshow('open',img_binary_open)
+    cv.imshow(f'Found items: {blob_count}',img_output)
+    cv.imwrite('Images/goal1_binary.png',img_binary_open)
 
 if __name__ == "__main__":
     startTime = time.time()

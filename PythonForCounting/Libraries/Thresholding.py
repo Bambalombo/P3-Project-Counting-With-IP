@@ -2,6 +2,7 @@ import numpy as np
 import cv2 as cv
 from matplotlib import pyplot as plt
 
+
 def getColorHistogramFromSlice(slice):
     outputHistograms = []
     outputBinEdges = []
@@ -11,14 +12,18 @@ def getColorHistogramFromSlice(slice):
         outputBinEdges.append(binEdges)
     return outputHistograms, outputBinEdges
 
+
 def calculateIntensity(pixel):
     """
     Returnerer intensiteten af en enkelt pixel
     :param pixel:
     :return:
     """
-    bgrMean = pixel[0] / 3 + pixel[1] / 3 + pixel[2] / 3
-    intensity = bgrMean / 255
+    if (pixel.shape == 3):
+        bgrMean = pixel[0] / 3 + pixel[1] / 3 + pixel[2] / 3
+        intensity = bgrMean / 255
+    else:
+        intensity = pixel / 255
     return intensity
 
 
