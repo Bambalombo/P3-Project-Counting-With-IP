@@ -73,15 +73,11 @@ def illumination_mean_filter_2D(input_image, kernel_size=1):
             value = float(input_image[int(y+(kernel_size/2)), int(x+(kernel_size/2))]) - float(lpf_img[y, x]) + lpf_mean
             output[y, x] = value
 
-    print(output)
-
     # Normaliser array mellem 0 og 255. Formel fra: https://www.statology.org/normalize-data-between-0-and-100/
     # np.ptp betyder PeakToPeak. Det er forskellen mellem min og max værdien i et array
     output = ((output - np.min(output))/np.ptp(output))*255
     # Datatypen ændres til uint8 så cv kan læse den som et billede med pixelværdier.
     output = output.astype(np.uint8)
-
-    print(output)
 
     return output
 
