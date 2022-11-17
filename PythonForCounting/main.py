@@ -262,17 +262,26 @@ def main():
     cv.imshow('output', doneImage)
 
 def temp_main():
-    img = cv.imread('Images/coins_evenlyLit.png')
+    #img = cv.imread('Images/coins_evenlyLit.png')
+    img = cv.imread('Images/Goal1/spoonsAndCoins.jpg')
+    img = cv.resize(img,((int(img.shape[1]/8)),int(img.shape[0]/8)))
+
     img_gs = makeGrayscale(img)
     img_binary = th.makeImageBinaryIntensityThreshold(img_gs,0.5)
-    img_binary_closed = morph.close(img_binary,5)
-    img_binary_open = morph.open(img_binary_closed,5)
+    img_binary_closed = morph.close(img_binary,3)
+    img_binary_open = morph.open(img_binary_closed,1)
+    #img_binary_open = morph.erode(img_binary_open,15)
     img_output = cv.cvtColor(img_binary_open,cv.COLOR_GRAY2BGR)
 
     blobs = grassfire(img_binary_open)
-    blob_count = len(blobs)
+    blob_count = 0
 
     for i, blob in enumerate(blobs):
+        if (len(blob) < 20):
+            continue
+
+        blob_count += 1
+
         min_y = img_binary_open.shape[0]
         min_x = img_binary_open.shape[1]
         max_y = 0
@@ -287,18 +296,25 @@ def temp_main():
             if (coordinate[1] < min_x):
                 min_x = coordinate[1]
         cv.rectangle(img_output,(min_x-3,min_y-3),(max_x+3,max_y+3),(0,255,0),2)
-        cv.putText(img_output, f'{i+1}:', (min_x, min_y - 8), cv.FONT_HERSHEY_TRIPLEX, 0.8, (0, 255, 0))
+        cv.putText(img_output, f'{blob_count}:', (min_x, min_y - 8), cv.FONT_HERSHEY_TRIPLEX, 0.4, (0, 255, 0))
         print(f'blob {i+1}: min coord: ({min_x,min_y}), max coord: ({max_x,max_y})')
 
     print(f'blob_count: {blob_count}')
 
-    #cv.imshow('img',img)
-    #cv.imshow('gs',img_gs)
-    #cv.imshow('binary',img_binary)
-    #cv.imshow('closed',img_binary_closed)
+    cv.putText(img_output, f'Found items: {blob_count}:', (5,15), cv.FONT_HERSHEY_TRIPLEX, 0.4, (0, 255, 0))
+
+    cv.imshow('img',img)
+    cv.imshow('gs',img_gs)
+    cv.imshow('binary',img_binary)
+    cv.imshow('closed',img_binary_closed)
     cv.imshow('open',img_binary_open)
     cv.imshow(f'Found items: {blob_count}',img_output)
-    cv.imwrite('Images/goal1_binary.png',img_binary_open)
+    cv.imwrite('Images/Goal1/coinsAndSpoons/goal1_coinsAndSpoons_1input.jpg',img)
+    cv.imwrite('Images/Goal1/coinsAndSpoons/goal1_coinsAndSpoons_2grayscale.jpg',img_gs)
+    cv.imwrite('Images/Goal1/coinsAndSpoons/goal1_coinsAndSpoons_3binary.jpg',img_binary)
+    cv.imwrite('Images/Goal1/coinsAndSpoons/goal1_coinsAndSpoons_4closed.jpg',img_binary_closed)
+    cv.imwrite('Images/Goal1/coinsAndSpoons/goal1_coinsAndSpoons_5open.jpg',img_binary_open)
+    cv.imwrite('Images/Goal1/coinsAndSpoons/goal1_coinsAndSpoons_6output.jpg',img_output)
 
 if __name__ == "__main__":
     startTime = time.time()
