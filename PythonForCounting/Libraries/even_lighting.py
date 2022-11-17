@@ -61,7 +61,7 @@ def illumination_mean_filter_2D(input_image, kernel_size=1):
     """
     height, width = input_image.shape
     #output = np.zeros((height, width, channels), dtype=np.uint8) # for cv2, since image doesn't get smaller
-    output = np.zeros((height-kernel_size+1, width-kernel_size+1), dtype=np.uint8)
+    output = np.zeros((height-kernel_size+1, width-kernel_size+1), dtype=np.float64)
 
     #lpf_img = cv.blur(input_image, (kernel_size, kernel_size))
     lpf_img = convolve_2D(input_image, kernel_size)
@@ -69,8 +69,13 @@ def illumination_mean_filter_2D(input_image, kernel_size=1):
 
     for y in range(height-kernel_size+1):
         for x in range(width-kernel_size+1):
-            value = clamp(int(input_image[int(y+(kernel_size/2)), int(x+(kernel_size/2))]) - int(lpf_img[y, x]) + int(round(lpf_mean)), 0, 255)
+            value = float(input_image[int(y+(kernel_size/2)), int(x+(kernel_size/2))]) - float(lpf_img[y, x]) + lpf_mean
             output[y, x] = value
+
+    # Normaliser array mellem 0 og 255. Formel fra: https://www.statology.org/normalize-data-between-0-and-100/
+    output = output / np.max(output) * 255
+    # Datatypen ændres til uint8 så cv kan læse den som et billede med pixelværdier.
+    output = output.astype(np.uint8)
 
     return output
 
@@ -85,20 +90,25 @@ def illumination_mean_filter_BGR(input_image, kernel_size=1):
     """
     height, width, channels = input_image.shape
     #output = np.zeros((height, width, channels), dtype=np.uint8) # for cv2, since image doesn't get smaller
-    output = np.zeros((height-kernel_size+1, width-kernel_size+1, channels), dtype=np.uint8)
+    # Opretter et nyt tomt billede. Her bruges dtype=float64 for beregne værdier over 255 og under 0 undervejs
+    output = np.zeros((height-kernel_size+1, width-kernel_size+1, channels), dtype=np.float64)
 
     #lpf_img = cv.blur(input_image, (kernel_size, kernel_size))
     lpf_img = convolve_3D(input_image, kernel_size)
     lpf_mean = lpf_img.mean()
 
     print(f'jeg fik et billede. Jeg fik en kernel size på {kernel_size}')
-
     for channel in range(channels):
         print(f'jeg fixer lige lighting på channel {channel+1} af {channels}')
         for y in range(height-kernel_size+1):
             for x in range(width-kernel_size+1):
-                value = clamp(int(input_image[int(y+(kernel_size/2)), int(x+(kernel_size/2)), channel]) - int(lpf_img[y, x, channel]) + int(round(lpf_mean)), 0, 255)
-                output[y, x, channel] = value
+                new_pixel_value = float(input_image[int(y+(kernel_size/2)), int(x+(kernel_size/2)), channel]) - float(lpf_img[y, x, channel]) + lpf_mean
+                output[y, x, channel] = new_pixel_value
+
+    # Normaliser array mellem 0 og 255. Formel fra: https://www.statology.org/normalize-data-between-0-and-100/
+    output = output/np.max(output)*255
+    # Datatypen ændres til uint8 så cv kan læse den som et billede med pixelværdier.
+    output = output.astype(np.uint8)
 
     return output
 

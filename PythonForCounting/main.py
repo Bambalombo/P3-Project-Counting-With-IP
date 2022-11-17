@@ -261,9 +261,20 @@ def main():
     cv.imshow('userSlice',userSlice)
     cv.imshow('output', doneImage)
 
+def temp_main():
+    img = cv.imread('Images/paper.jpg')
+    img_corrected = el.illumination_mean_filter_BGR(img,151)
+
+    img_grayscale = cv.imread('Images/paper.jpg',0)
+    img_grayscale_corrected = el.illumination_mean_filter_2D(img_grayscale,151)
+    cv.imshow('grayscale_corrected',img_grayscale_corrected)
+    cv.imshow('BGR_corrected',img_corrected)
+
+
 if __name__ == "__main__":
     startTime = time.time()
-    main()
+    #main()
+    temp_main()
     print(f'Tid = {time.time() - startTime} s')
     cv.waitKey(0)
     cv.destroyAllWindows()
