@@ -275,8 +275,8 @@ def temp_main():
 
 if __name__ == "__main__":
     startTime = time.time()
-    #main()
-    temp_main()
+    main()
+    #temp_main()
     print(f'Tid = {time.time() - startTime} s')
     cv.waitKey(0)
     cv.destroyAllWindows()
