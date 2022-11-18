@@ -153,13 +153,13 @@ def nonMaximumSupression(outlines, threshold, scores = None):
         # af vores vinduer
         overlapLeftX = np.maximum(xleft[ndi], xleft[tempSortingArray[:lastTempIndex]])
         overlapRightX = np.minimum(xright[ndi], xright[tempSortingArray[:lastTempIndex]])
-        overlapLeftY = np.maximum(yleft[ndi], yleft[tempSortingArray[:lastTempIndex]])
-        overlapRightY = np.minimum(yright[ndi], yright[tempSortingArray[:lastTempIndex]])
+        overlapBottomY = np.maximum(yleft[ndi], yleft[tempSortingArray[:lastTempIndex]])
+        overlapTopY = np.minimum(yright[ndi], yright[tempSortingArray[:lastTempIndex]])
 
         # så laver vi et array som holder alle bredder og højder på vores overlaps
         # der ligges 1 til for at få den rent faktiske bredde, da man trækker pixelpositioner fra hinanden
         overlapWidths = np.maximum(0, overlapRightX - overlapLeftX + 1)
-        overlapHeights = np.maximum(0, overlapRightY - overlapLeftY + 1)
+        overlapHeights = np.maximum(0, overlapTopY - overlapBottomY + 1)
 
         #arealet af alle de overlappende områder beregnes og divideres med det oprindelige array af arealer
         #for at få hvor meget areal der er overlap, mod hvor meget areal der rent faktisk var i boundingboxen
