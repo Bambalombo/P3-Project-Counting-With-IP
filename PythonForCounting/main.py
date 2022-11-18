@@ -11,7 +11,7 @@ from Libraries import Thresholding as th
 from Libraries import bordering as bd
 from Libraries import Outlining as outl
 from Libraries import FeatureMatching as fm
-
+import time
 
 def makeImagePyramide(startingImage, scale, minWidth):
     """
@@ -21,8 +21,7 @@ def makeImagePyramide(startingImage, scale, minWidth):
     :param minWidth: hvor stort det mindste billede skal være
     """
     #yield gør så man kan loope over pyramiden, og få et objekt hver gang yield bliver kaldt
-    yield startingImage
-    currentImage = cv.resize(startingImage, (int(startingImage.shape[1] / scale), int(startingImage.shape[0] / scale)))
+    currentImage = startingImage
     while currentImage.shape[1] > minWidth:
         yield currentImage
         currentImage = cv.resize(currentImage, (int(currentImage.shape[1] / scale), int(currentImage.shape[0] / scale)))
@@ -35,8 +34,8 @@ def windowSlider(image, windowSize: tuple, stepSize):
     :param stepSize: hvor stort et skridt man skal tage mellem hvert slice
     """
     for y in range(0,image.shape[0], stepSize):
-        for x in range(0, image.shape[1],stepSize):
-            yield (y,x, image[y:y+windowSize[0],x:x+windowSize[1]])
+        for x in range(0, image.shape[1], stepSize):
+            yield (y,x, image[y:y+windowSize[0], x:x+windowSize[1]])
 
 def makeGrayscale(img):
     """
@@ -119,7 +118,7 @@ def grassfire(img, whitepixel=255):
 
 def nonMaximumSupression(outlines, threshold, scores = None):
     boxes = np.array(outlines).astype("float")
-    if not hits:
+    if not outlines:
         return []
     #vores liste over alle hits der er tilbage efter supression
     realHits = []
@@ -184,8 +183,9 @@ def returnScoreAndImageWithOutlines(image, hits, nmsTreshhold = 0.3):
         outlines.append(outline)
     outputImage = image.copy()
     hitScores, hitOutlines = nonMaximumSupression(outlines ,nmsTreshhold, scores)
-    for (startx, endx, starty, endy) in hitOutlines:
+    for i, (startx, endx, starty, endy) in enumerate(hitOutlines):
         cv.rectangle(outputImage, (startx,starty), (endx,endy), (0,255,0), 2)
+        cv.putText(outputImage,f'Score: {int(scores[i])}', (startx,starty),cv.FONT_HERSHEY_PLAIN, 1, (255,255,255))
 
     return len(hitScores), outputImage
 def temp_test():
@@ -224,43 +224,60 @@ def temp_test():
     cv.waitKey(0)
     cv.destroyAllWindows()
 
+def main():
+    inputPicture = cv.imread('Images/candlelightsOnVaryingBackground.jpg')
+    #inputPicture = cv.resize(inputPicture, (int(inputPicture.shape[1]/10), int(inputPicture.shape[0]/10)))
+    userSlice = cv.imread('Images/redCandleCutoutVaryingBackground.png')
+    #userSlice = cv.resize(userSlice, (int(userSlice.shape[1]/10), int(userSlice.shape[0]/10)))
 
-inputPicture = cv.imread('Images/DillerCoins.jpg')
-inputPicture = cv.resize(inputPicture, (int(inputPicture.shape[1]/10), int(inputPicture.shape[0]/10)))
-userSlice = cv.imread('Images/CoinCutout.png')
-userSlice = cv.resize(userSlice, (int(userSlice.shape[1]/10), int(userSlice.shape[0]/10)))
+    sliceFeatureVector = fm.calculateImageHistogramBinVector(userSlice,16,500)
+    scaleRatio = 1.5
+    imagePyramid  = makeImagePyramide(inputPicture, scaleRatio, 150)
+    #definere vinduestørrelsen, tænker den skulle laves ud fra inputbilledet
+    windowSize = (int(userSlice.shape[0]), int(userSlice.shape[1]))
 
-sliceFeatureVector = fm.calculateImageHistogramBinVector(userSlice,16,500)
-scaleRatio = 1.5
-imagePyramid  = makeImagePyramide(inputPicture, scaleRatio, 150)
-#definere vinduestørrelsen, tænker den skulle laves ud fra inputbilledet
-windowSize = (int(userSlice.shape[0]), int(userSlice.shape[1]))
+    #vores liste over hits
+    hits = []
 
-#vores liste over hits
-hits = []
-#looper over alle billeder i billedpyramiden, man behøver ikke at lave pyramiden først, den kan laves på samme linje hernede
-for i, image in enumerate(imagePyramid):
-    #looper over alle vinduerne i billedet
-    for (y,x,window) in windowSlider(image,windowSize,int(windowSize[0]/6)):
-        #Vinduet kan godt blive lavet halvt uden for billedet, hvis dette ikke er ønsket kan vi skippe den beregning i loopet men det er lige en diskussion vi skal have i gruppen
-        if(window.shape[0] != windowSize[0] or window.shape[1] != windowSize[1]):
-            continue
-        #Lav vores image processing her
-        currentWindowVector = fm.calculateImageHistogramBinVector(window, 16, 500)
-        euc_dist = fm.calculateEuclidianDistance(sliceFeatureVector, currentWindowVector)
-        if (euc_dist < 1200):
-            if i > 0:
-                hits.append([euc_dist, [x*i*scaleRatio, x*i*scaleRatio + (window.shape[1]*i*scaleRatio), y*i*scaleRatio, y*i*scaleRatio + (window.shape[0]*i*scaleRatio)]])
-            else:
-                hits.append([euc_dist,[x,x+window.shape[1],y,y+window.shape[0]]])
-        #tegner en rektangel der går hen over billedet for illustrating purposes
-        # clone = image.copy()
-        # cv.rectangle(clone, (x, y), (x + windowSize[1], y + windowSize[0]), (0, 255, 0), 2)
-        # cv.imshow("window", clone)
-        # cv.waitKey(1)
-score, doneImage = returnScoreAndImageWithOutlines(inputPicture,hits, 0.1)
-print(score)
-cv.imshow('input', inputPicture)
-cv.imshow('output', doneImage)
-cv.waitKey(0)
-cv.destroyAllWindows()
+    #looper over alle billeder i billedpyramiden, man behøver ikke at lave pyramiden først, den kan laves på samme linje hernede
+    for i, image in enumerate(imagePyramid):
+        #looper over alle vinduerne i billedet
+        for (y,x,window) in windowSlider(image,windowSize,int(windowSize[0]/3)):
+            #Vinduet kan godt blive lavet halvt uden for billedet, hvis dette ikke er ønsket kan vi skippe den beregning i loopet men det er lige en diskussion vi skal have i gruppen
+            if(window.shape[0] != windowSize[0] or window.shape[1] != windowSize[1]):
+                continue
+            #Lav vores image processing her
+            currentWindowVector = fm.calculateImageHistogramBinVector(window, 16, 500)
+            euc_dist = fm.calculateEuclidianDistance(sliceFeatureVector, currentWindowVector)
+            if (euc_dist < 900):
+                if i > 0:
+                    hits.append([euc_dist, [x*(scaleRatio**i), x*(scaleRatio**i) + (window.shape[1]*(scaleRatio**i)), y*(scaleRatio**i), y*(scaleRatio**i) + (window.shape[0]*(scaleRatio**i))]])
+                else:
+                    hits.append([euc_dist,[x,x+window.shape[1],y,y+window.shape[0]]])
+
+    score, doneImage = returnScoreAndImageWithOutlines(inputPicture,hits, 0.1)
+    print(score)
+    cv.imshow('input', inputPicture)
+    cv.imshow('userSlice',userSlice)
+    cv.imshow('output', doneImage)
+
+def temp_main():
+    img = cv.imread('Images/scarf.jpeg')
+    img = cv.resize(img,(int(img.shape[1]/5),int(img.shape[0]/5)))
+    img_corrected = el.illumination_mean_filter_BGR(img,151)
+    cv.imshow('BGR_corrected',img_corrected)
+
+    img_grayscale = cv.imread('Images/scarf.jpeg',0)
+    img_grayscale = cv.resize(img_grayscale,(int(img_grayscale.shape[1]/5),int(img_grayscale.shape[0]/5)))
+    img_grayscale_corrected = el.illumination_mean_filter_2D(img_grayscale,151)
+    cv.imshow('grayscale_corrected',img_grayscale_corrected)
+
+
+if __name__ == "__main__":
+    startTime = time.time()
+    #main()
+    temp_main()
+    print(f'Tid = {time.time() - startTime} s')
+    cv.waitKey(0)
+    cv.destroyAllWindows()
+
