@@ -263,7 +263,7 @@ def main():
 
 def temp_main():
     #img = cv.imread('Images/coins_evenlyLit.png')
-    img = cv.imread('Images/Goal1/spoonsAndCoins.jpg')
+    img = cv.imread('Images/Goal1/fourSpoon.jpg')
     img = cv.resize(img,((int(img.shape[1]/8)),int(img.shape[0]/8)))
 
     img_gs = makeGrayscale(img)
@@ -271,7 +271,8 @@ def temp_main():
     img_binary_closed = morph.close(img_binary,3)
     img_binary_open = morph.open(img_binary_closed,1)
     #img_binary_open = morph.erode(img_binary_open,15)
-    img_output = cv.cvtColor(img_binary_open,cv.COLOR_GRAY2BGR)
+    img_binary_median = cv.medianBlur(img_binary_open,5)
+    img_output = cv.cvtColor(img_binary_median,cv.COLOR_GRAY2BGR)
 
     blobs = grassfire(img_binary_open)
     blob_count = 0
@@ -308,6 +309,7 @@ def temp_main():
     cv.imshow('binary',img_binary)
     cv.imshow('closed',img_binary_closed)
     cv.imshow('open',img_binary_open)
+    cv.imshow('median',img_binary_median)
     cv.imshow(f'Found items: {blob_count}',img_output)
     cv.imwrite('Images/Goal1/coinsAndSpoons/goal1_coinsAndSpoons_1input.jpg',img)
     cv.imwrite('Images/Goal1/coinsAndSpoons/goal1_coinsAndSpoons_2grayscale.jpg',img_gs)
