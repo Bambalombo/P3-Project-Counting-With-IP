@@ -263,11 +263,17 @@ def main():
 
 def temp_main():
     #img = cv.imread('Images/coins_evenlyLit.png')
-    img = cv.imread('Images/dual_lighted_coins.jpg')
-    img = cv.resize(img,((int(img.shape[1]/8)),int(img.shape[0]/8)))
+    img = cv.imread('Images/fyrfadslys.jpg')
+    if (img.shape[0]>1500):
+        ratio = (img.shape[0]/1500)
+        img = cv.resize(img,((int(img.shape[1]/8)),int(img.shape[0]/8)))
 
     img_gs = makeGrayscale(img)
-    img_binary = th.makeImageBinaryIntensityThreshold(img_gs,0.5)
+
+    img_bordered = bd.addborder_reflect(img_gs,151)
+    img_el = el.illumination_mean_filter_2D(img_bordered,151)
+
+    img_binary = th.makeImageBinaryIntensityThreshold(img_el,0.5)
     img_binary_closed = morph.close(img_binary,9)
     #img_binary_median = cv.medianBlur(img_binary_closed,5)
     img_binary_open = morph.open(img_binary_closed,5)
@@ -278,9 +284,6 @@ def temp_main():
     blob_count = 0
 
     for i, blob in enumerate(blobs):
-        if (len(blob) < 20):
-            continue
-
         blob_count += 1
 
         min_y = img_binary_open.shape[0]
@@ -306,17 +309,24 @@ def temp_main():
 
     cv.imshow('img',img)
     cv.imshow('gs',img_gs)
+    cv.imshow('border',img_bordered)
+    cv.imshow('el',img_el)
     cv.imshow('binary',img_binary)
     cv.imshow('closed',img_binary_closed)
     #cv.imshow('median',img_binary_median)
     cv.imshow('open',img_binary_open)
     cv.imshow(f'Found items: {blob_count}',img_output)
-    #cv.imwrite('Images/Goal1/manyCoins/goal1_manyCoins_1input.jpg',img)
-    #cv.imwrite('Images/Goal1/manyCoins/goal1_manyCoins_2grayscale.jpg',img_gs)
-    cv.imwrite('Images/Goal1/transitionToGoal2/goal1_evenlighting_3binary.jpg',img_binary)
-    #cv.imwrite('Images/Goal1/manyCoins/goal1_manyCoins_4closed.jpg',img_binary_closed)
-    #cv.imwrite('Images/Goal1/manyCoins/goal1_manyCoins_5open.jpg',img_binary_open)
-    #cv.imwrite('Images/Goal1/manyCoins/goal1_manyCoins_6output.jpg',img_output)
+    """
+    cv.imwrite('Images/Goal2/failedLightCorrection/goal1_splitShadowCoins_1input.jpg',img)
+    cv.imwrite('Images/Goal2/failedLightCorrection/goal1_splitShadowCoins_2grayscale.jpg',img_gs)
+    cv.imwrite('Images/Goal2/failedLightCorrection/goal1_splitShadowCoins_3bordered.jpg',img_bordered)
+    cv.imwrite('Images/Goal2/failedLightCorrection/goal1_splitShadowCoins_4lightcorrected.jpg',img_el)
+    cv.imwrite('Images/Goal2/failedLightCorrection/goal1_splitShadowCoins_5binary.jpg',img_binary)
+    cv.imwrite('Images/Goal2/failedLightCorrection/goal1_splitShadowCoins_6closed.jpg',img_binary_closed)
+    cv.imwrite('Images/Goal2/failedLightCorrection/goal1_splitShadowCoins_7open.jpg',img_binary_open)
+    cv.imwrite('Images/Goal2/failedLightCorrection/goal1_splitShadowCoins_8output.jpg',img_output)
+    """
+
 
 if __name__ == "__main__":
     startTime = time.time()
