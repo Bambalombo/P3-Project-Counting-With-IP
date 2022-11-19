@@ -1,14 +1,21 @@
 package com.example.countingapplication;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -20,27 +27,24 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        myImage = (ImageView) findViewById(R.id.myImage);
-        button = (Button) findViewById(R.id.button);
+        myImage = findViewById(R.id.myImage);
+        button = findViewById(R.id.button);
 
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                takePicture();
+                Intent openCamera = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                startActivityForResult(openCamera, 0);
             }
         });
     }
 
-    private void takePicture() {
-        Intent i = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        startActivityForResult(i,0);
-    }
-
-    protected void OnActivityResult(int requestCode, int resultCode, Intent data){
-        super.onActivityResult(requestCode,resultCode,data);
-        if(resultCode == RESULT_OK){
-            Bitmap b = (Bitmap) data.getExtras().get("data");
-            myImage.setImageBitmap(b);
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if(requestCode == 0){
+            Bitmap image = (Bitmap) data.getExtras().get("data");
+            myImage.setImageBitmap(image);
         }
     }
 }
