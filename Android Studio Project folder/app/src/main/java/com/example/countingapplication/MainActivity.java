@@ -1,27 +1,25 @@
 package com.example.countingapplication;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 
-import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
 
     private ImageView myImage;
     private Button button;
 
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -35,6 +33,19 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 Intent openCamera = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
                 startActivityForResult(openCamera, 0);
+            }
+        });
+
+        myImage.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                    int x = (int) event.getX();
+                    int y = (int) event.getY();
+                    Log.d("The X value is", String.valueOf(x));
+                    Log.d("The Y value is", String.valueOf(y));
+                }
+                return false;
             }
         });
     }
