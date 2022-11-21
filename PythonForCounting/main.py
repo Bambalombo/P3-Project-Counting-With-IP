@@ -131,10 +131,12 @@ def nonMaximumSupression(outlines, threshold, scores = None):
 
     # beregner arealet af alle vores boundingboxes og gemmer dem
     areaOfBoundingBoxes = (xright - xleft + 1) * (yright - yleft + 1)
+    differentAreas = set(areaOfBoundingBoxes)
     # laver et midlertidigt array som vi sortere
     # enten efter nederste højre boundingbox, eller efter score
     # det er midlertidigt, så vi kan bruge det som kondition i vores whileloop,
     # mens vi fjerne alle boundingboxes
+
     tempSortingArray = yleft
     if scores is not None:
         tempSortingArray = scores
@@ -162,8 +164,18 @@ def nonMaximumSupression(outlines, threshold, scores = None):
         overlapHeights = np.maximum(0, overlapTopY - overlapBottomY + 1)
 
         #arealet af alle de overlappende områder beregnes og divideres med det oprindelige array af arealer
+        overlapArea = overlapWidths * overlapHeights
         #for at få hvor meget areal der er overlap, mod hvor meget areal der rent faktisk var i boundingboxen
-        overlapAreaRatio = (overlapWidths * overlapHeights) / areaOfBoundingBoxes[tempSortingArray[:lastTempIndex]]
+        overlapMatches = []
+        for i in overlapArea:
+            if i in differentAreas:
+                overlapMatches.append(True)
+            else:
+                overlapMatches.append(False)
+        overlapMatches = np.array(overlapMatches, dtype=bool)
+        overlapAreaRatio = np.where(overlapMatches,1,overlapArea / areaOfBoundingBoxes[tempSortingArray[:lastTempIndex]])
+        #overlapAreaRatio = np.where(overlapArea in areaOfBoundingBoxes[tempSortingArray[:lastTempIndex]], 1,overlapArea / areaOfBoundingBoxes[tempSortingArray[:lastTempIndex]])
+        #overlapAreaRatio = overlapArea / areaOfBoundingBoxes[tempSortingArray[:lastTempIndex]]
 
         #slet alle indexes hvor overlapratio er større end threshold
         tempSortingArray = np.delete(tempSortingArray, np.concatenate(([lastTempIndex], np.where(overlapAreaRatio > threshold)[0])))
@@ -225,9 +237,9 @@ def temp_test():
     cv.destroyAllWindows()
 
 def main():
-    inputPicture = cv.imread('Images/candlelightsOnVaryingBackground.jpg')
+    inputPicture = cv.imread('Images/fyrfadslys.jpg')
     #inputPicture = cv.resize(inputPicture, (int(inputPicture.shape[1]/10), int(inputPicture.shape[0]/10)))
-    userSlice = cv.imread('Images/redCandleCutoutVaryingBackground.png')
+    userSlice = cv.imread('Images/red_candle_cutout.jpg')
     #userSlice = cv.resize(userSlice, (int(userSlice.shape[1]/10), int(userSlice.shape[0]/10)))
 
     sliceFeatureVector = fm.calculateImageHistogramBinVector(userSlice,16,500)
@@ -266,7 +278,6 @@ def temp_main():
     img = cv.resize(img,(int(img.shape[1]/5),int(img.shape[0]/5)))
     img_corrected = el.illumination_mean_filter_BGR(img,151)
     cv.imshow('BGR_corrected',img_corrected)
-
     img_grayscale = cv.imread('Images/scarf.jpeg',0)
     img_grayscale = cv.resize(img_grayscale,(int(img_grayscale.shape[1]/5),int(img_grayscale.shape[0]/5)))
     img_grayscale_corrected = el.illumination_mean_filter_2D(img_grayscale,151)
