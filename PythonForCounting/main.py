@@ -284,12 +284,19 @@ def temp_main():
     img_grayscale_corrected = el.illumination_mean_filter_2D(img_grayscale,151)
     cv.imshow('grayscale_corrected',img_grayscale_corrected)
 
+def testGuassian():
+    inputPicture = cv.imread('Images/fyrfadslys.jpg')
+    blurredPictures = SIFT.differenceOfGaussian(inputPicture, 17, 2)
+    for i, picture in enumerate(blurredPictures):
+        cv.imshow(f'picture number: {i}', picture)
 
 if __name__ == "__main__":
     startTime = time.time()
-    main()
+    #main()
+    testGuassian()
     #temp_main()
     print(f'Tid = {time.time() - startTime} s')
     cv.waitKey(0)
     cv.destroyAllWindows()
+
 
