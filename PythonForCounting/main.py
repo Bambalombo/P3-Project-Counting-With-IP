@@ -11,6 +11,7 @@ from Libraries import Thresholding as th
 from Libraries import bordering as bd
 from Libraries import Outlining as outl
 from Libraries import FeatureMatching as fm
+from Libraries import SIFT
 import time
 
 def makeImagePyramide(startingImage, scale, minWidth):
