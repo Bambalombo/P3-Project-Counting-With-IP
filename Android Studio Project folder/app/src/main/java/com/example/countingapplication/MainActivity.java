@@ -38,7 +38,7 @@ public class MainActivity extends AppCompatActivity {
 
         myImage.setOnTouchListener(new View.OnTouchListener() {
             @Override
-            public boolean onTouch(View v, MotionEvent event) {
+            public boolean onTouch(View view, MotionEvent event) {
                 if (event.getAction() == MotionEvent.ACTION_DOWN) {
                     int x = (int) event.getX();
                     int y = (int) event.getY();
@@ -47,6 +47,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 return false;
             }
+            
         });
     }
 
@@ -58,4 +59,9 @@ public class MainActivity extends AppCompatActivity {
             myImage.setImageBitmap(image);
         }
     }
+
+
+
 }
+
+
