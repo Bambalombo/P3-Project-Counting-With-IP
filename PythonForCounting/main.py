@@ -263,21 +263,20 @@ def main():
 
 def temp_main():
     #img = cv.imread('Images/coins_evenlyLit.png')
-    img = cv.imread('Images/fyrfadslys.jpg')
+    img = cv.imread('Images/Goal1_Image.jpeg')
     if (img.shape[0]>1500):
         ratio = (img.shape[0]/1500)
-        img = cv.resize(img,((int(img.shape[1]/8)),int(img.shape[0]/8)))
+    img = cv.resize(img,((int(img.shape[1]/2.52)),int(img.shape[0]/2.52)))
 
     img_gs = makeGrayscale(img)
 
     img_bordered = bd.addborder_reflect(img_gs,151)
+    img_blurred = el.convolve_2D(img_bordered,151)
     img_el = el.illumination_mean_filter_2D(img_bordered,151)
 
     img_binary = th.makeImageBinaryIntensityThreshold(img_el,0.5)
     img_binary_closed = morph.close(img_binary,9)
-    #img_binary_median = cv.medianBlur(img_binary_closed,5)
     img_binary_open = morph.open(img_binary_closed,5)
-    #img_binary_open = morph.erode(img_binary_open,15)
     img_output = cv.cvtColor(img_binary_open,cv.COLOR_GRAY2BGR)
 
     blobs = grassfire(img_binary_open)
@@ -316,16 +315,16 @@ def temp_main():
     #cv.imshow('median',img_binary_median)
     cv.imshow('open',img_binary_open)
     cv.imshow(f'Found items: {blob_count}',img_output)
-    """
-    cv.imwrite('Images/Goal2/failedLightCorrection/goal1_splitShadowCoins_1input.jpg',img)
-    cv.imwrite('Images/Goal2/failedLightCorrection/goal1_splitShadowCoins_2grayscale.jpg',img_gs)
-    cv.imwrite('Images/Goal2/failedLightCorrection/goal1_splitShadowCoins_3bordered.jpg',img_bordered)
-    cv.imwrite('Images/Goal2/failedLightCorrection/goal1_splitShadowCoins_4lightcorrected.jpg',img_el)
-    cv.imwrite('Images/Goal2/failedLightCorrection/goal1_splitShadowCoins_5binary.jpg',img_binary)
-    cv.imwrite('Images/Goal2/failedLightCorrection/goal1_splitShadowCoins_6closed.jpg',img_binary_closed)
-    cv.imwrite('Images/Goal2/failedLightCorrection/goal1_splitShadowCoins_7open.jpg',img_binary_open)
-    cv.imwrite('Images/Goal2/failedLightCorrection/goal1_splitShadowCoins_8output.jpg',img_output)
-    """
+
+    cv.imwrite('Images/Goal1/goal1Image/goal1_1input.jpg',img)
+    cv.imwrite('Images/Goal1/goal1Image/goal1_2grayscale.jpg',img_gs)
+    cv.imwrite('Images/Goal1/goal1Image/goal1_3bordered.jpg',img_bordered)
+    cv.imwrite('Images/Goal1/goal1Image/goal1_4lightcorrected.jpg',img_el)
+    cv.imwrite('Images/Goal1/goal1Image/goal1_5binary.jpg',img_binary)
+    cv.imwrite('Images/Goal1/goal1Image/goal1_6closed.jpg',img_binary_closed)
+    cv.imwrite('Images/Goal1/goal1Image/goal1_7open.jpg',img_binary_open)
+    cv.imwrite('Images/Goal1/goal1Image/goal1_8output.jpg',img_output)
+    cv.imwrite('Images/Goal1/goal1Image/goal1_9blurred.jpg',img_blurred)
 
 
 if __name__ == "__main__":
