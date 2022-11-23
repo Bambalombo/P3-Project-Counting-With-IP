@@ -23,8 +23,6 @@ def differenceOfGaussian(image, kernelsize, SD):
 
 
 def makeGuassianKernel(kernelsize, SD):
-# Funktion: (1/kvdr(2Pi) * Sigma) *
-# Sigma = SD =
     radius = int((kernelsize - 1) / 2)  # kernel radius
     guassian = [1/(math.sqrt(2*math.pi) * SD) * math.exp(-0.5 * (x/SD)**2) for x in range(-radius, radius+1)]
     guassianKernel = np.zeros((kernelsize, kernelsize))

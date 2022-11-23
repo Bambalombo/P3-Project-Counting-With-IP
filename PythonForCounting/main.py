@@ -286,7 +286,7 @@ def temp_main():
 
 def testGuassian():
     inputPicture = cv.imread('Images/fyrfadslys.jpg')
-    blurredPictures = SIFT.differenceOfGaussian(inputPicture, 17, 2)
+    blurredPictures = SIFT.differenceOfGaussian(inputPicture, 17, 1.6)
     for i, picture in enumerate(blurredPictures):
         cv.imshow(f'picture number: {i}', picture)
 
