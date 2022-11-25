@@ -5,20 +5,20 @@ import numpy as np
 from . import bordering as bd
 
 
-def differenceOfGaussian(image, kernelsize, SD):
+def differenceOfGaussian(image, kernelsize, SD, numberOfDoGs=5):
 
-    blurredPictures = []
     borderimage = bd.addborder_reflect(image, kernelsize)
-
-    for k in range(0, 5):
-        guassiankernel = makeGuassianKernel(kernelsize, SD * 1.5**k)
+    blurredPictures = [convolve(borderimage,makeGuassianKernel(kernelsize, SD))]
+    #blurredPictures = [cv.GaussianBlur(image,(0,0),sigmaX=SD,sigmaY=SD)]
+    k = 2**(1./(numberOfDoGs-2))
+    for i in range(1, numberOfDoGs+1):
+        guassiankernel = makeGuassianKernel(kernelsize, SD * (k**i))
         blurredPictures.append(convolve(borderimage, guassiankernel))
+        #blurredPictures.append(cv.GaussianBlur(image,(0,0),sigmaX=SD * (k**i),sigmaY=SD * (k**i)))
 
     DoG = []
-    for i, picture in enumerate(blurredPictures):
-        if i + 1 == len(blurredPictures):
-            break
-        DoG.append(cv.subtract(picture, blurredPictures[i + 1]))
+    for (bottomPicture,topPicture) in zip(blurredPictures,blurredPictures[1:]):
+        DoG.append(cv.subtract(bottomPicture, topPicture))
     return DoG
 
 
@@ -37,8 +37,6 @@ def convolve(image, kernel):
     kernelSize = kernel.shape[0]
     sumKernel = kernel/np.sum(kernel)
     output = np.zeros((image.shape[0] - kernelSize + 1, image.shape[1] - kernelSize + 1, image.shape[2]), dtype=np.uint8)
-
-
     for y in range(output.shape[0]):
         for x in range(output.shape[1]):
             for channel in range(output.shape[2]):
