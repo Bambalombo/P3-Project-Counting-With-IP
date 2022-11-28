@@ -245,7 +245,7 @@ def main():
 
     sliceFeatureVector = fm.calculateImageHistogramBinVector(userSlice,16,500)
     scaleRatio = 1.5
-    imagePyramid  = makeImagePyramide(inputPicture, scaleRatio, 150)
+    imagePyramid = makeImagePyramide(inputPicture, scaleRatio, 150)
     #definere vinduestørrelsen, tænker den skulle laves ud fra inputbilledet
     windowSize = (int(userSlice.shape[0]), int(userSlice.shape[1]))
 
@@ -286,8 +286,10 @@ def temp_main():
 
 def testGuassian():
     inputPicture = cv.imread('Images/fyrfadslys.jpg')
-    blurredPictures = SIFT.differenceOfGaussian(inputPicture, 17, 1.6, 5)
-    for i, picture in enumerate(blurredPictures):
+    image = inputPicture.astype('float32')
+    DoG = SIFT.differenceOfGaussian(image, 13, 1.6, 5)
+    for i, picture in enumerate(DoG):
+        print(picture)
         cv.imshow(f'picture number: {i}', picture)
 
 if __name__ == "__main__":

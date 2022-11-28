@@ -14,7 +14,7 @@ def differenceOfGaussian(image, kernelsize, SD, numberOfDoGs=5):
     for i in range(1, numberOfDoGs+1):
         guassiankernel = makeGuassianKernel(kernelsize, SD * (k**i))
         blurredPictures.append(convolve(borderimage, guassiankernel))
-        #blurredPictures.append(cv.GaussianBlur(image,(0,0),sigmaX=SD * (k**i),sigmaY=SD * (k**i)))
+        #blurredPictures.append(cv.GaussianBlur(image,(0,0),sigmaX=(SD * (k**i)),sigmaY=(SD * (k**i))))
 
     DoG = []
     for (bottomPicture,topPicture) in zip(blurredPictures,blurredPictures[1:]):
@@ -36,7 +36,7 @@ def makeGuassianKernel(kernelsize, SD):
 def convolve(image, kernel):
     kernelSize = kernel.shape[0]
     sumKernel = kernel/np.sum(kernel)
-    output = np.zeros((image.shape[0] - kernelSize + 1, image.shape[1] - kernelSize + 1, image.shape[2]), dtype=np.uint8)
+    output = np.zeros((image.shape[0] - kernelSize + 1, image.shape[1] - kernelSize + 1, image.shape[2]))
     for y in range(output.shape[0]):
         for x in range(output.shape[1]):
             for channel in range(output.shape[2]):
