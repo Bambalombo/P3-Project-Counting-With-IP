@@ -282,17 +282,18 @@ def temp_main():
     cv.imshow('grayscale_corrected',img_grayscale_corrected)
 
 def testGuassian():
-    inputPicture = cv.imread('Images/fyrfadslys.jpg')
-    image = inputPicture.astype('float32')
-    DoG = SIFT.differenceOfGaussian(image, 13, 1.6, 5)
-    for i, picture in enumerate(DoG):
-        print(picture)
-        cv.imshow(f'picture number: {i}', picture)
+    inputPicture = cv.imread('Images/candlelightsOnVaryingBackground.jpg')
+    greyscaleInput = makeGrayscale(inputPicture).astype('float32')
+    for p, image in enumerate(makeImagePyramide(greyscaleInput,2,150)):
+        DoG = SIFT.differenceOfGaussian(image, 1.6, p+1, 5)
+        for i, picture in enumerate(DoG):
+            print(picture)
+            cv.imshow(f'Octave: {p}, Dog: {i}', picture)
 
 if __name__ == "__main__":
     startTime = time.time()
-    main()
-    #testGuassian()
+    #main()
+    testGuassian()
     #temp_main()
     print(f'Tid = {time.time() - startTime} s')
     cv.waitKey(0)
