@@ -262,11 +262,8 @@ def main():
             #Lav vores image processing her
             currentWindowVector = fm.calculateImageHistogramBinVector(window, 16, 500)
             euc_dist = fm.calculateEuclidianDistance(sliceFeatureVector, currentWindowVector)
-            if (euc_dist < 900):
-                if i > 0:
-                    hits.append([euc_dist, [x*(scaleRatio**i), x*(scaleRatio**i) + (window.shape[1]*(scaleRatio**i)), y*(scaleRatio**i), y*(scaleRatio**i) + (window.shape[0]*(scaleRatio**i))]])
-                else:
-                    hits.append([euc_dist,[x,x+window.shape[1],y,y+window.shape[0]]])
+            if euc_dist < 900:
+                hits.append([euc_dist, [x*(scaleRatio**i), x*(scaleRatio**i) + (window.shape[1]*(scaleRatio**i)), y*(scaleRatio**i), y*(scaleRatio**i) + (window.shape[0]*(scaleRatio**i))]])
 
     score, doneImage = returnScoreAndImageWithOutlines(inputPicture,hits, 0.1)
     print(score)
@@ -294,8 +291,8 @@ def testGuassian():
 
 if __name__ == "__main__":
     startTime = time.time()
-    #main()
-    testGuassian()
+    main()
+    #testGuassian()
     #temp_main()
     print(f'Tid = {time.time() - startTime} s')
     cv.waitKey(0)
