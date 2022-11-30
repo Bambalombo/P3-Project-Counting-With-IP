@@ -286,15 +286,33 @@ def testGuassian():
     greyscaleInput = makeGrayscale(inputPicture).astype('float32')
     for p, image in enumerate(makeImagePyramide(greyscaleInput,2,150)):
         DoG = SIFT.differenceOfGaussian(image, 1.6, p+1, 5)
+        break
         for i, picture in enumerate(DoG):
             print(picture)
             cv.imshow(f'Octave: {p}, Dog: {i}', picture)
+
+    SIFT.defineKeyPointsFromPixelExtrema(DoG)
+
+
+def testMaxima():
+    # create pseudo image array
+    img1 = np.array([[1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1]])
+    img2 = np.array([[2, 2, 2, 2, 2, 2], [2, 69, 2, 2, 2, 2], [2, 2, 2, 2, 2, 2]])
+    img3 = np.array([[3, 3, 3, 3, 3, 3], [3, 3, 3, 3, 3, 3], [3, 3, 3, 3, 3, 3]])
+    img_array = []
+    img_array.append(img1)
+    img_array.append(img2)
+    img_array.append(img3)
+
+    SIFT.defineKeyPointsFromPixelExtrema(img_array)
 
 if __name__ == "__main__":
     startTime = time.time()
     #main()
     testGuassian()
-    #temp_main()
+    #testMaxima()
+
+
     print(f'Tid = {time.time() - startTime} s')
     cv.waitKey(0)
     cv.destroyAllWindows()
