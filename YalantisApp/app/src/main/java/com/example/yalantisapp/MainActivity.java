@@ -1,4 +1,4 @@
-package com.example.countingapplication;
+package com.example.yalantisapp;
 
 
 import android.Manifest;
@@ -8,14 +8,15 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContract;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.countingapplication.R;
 import com.example.countingapplication.databinding.ActivityMainBinding;
 import com.karumi.dexter.Dexter;
 import com.karumi.dexter.PermissionToken;
@@ -24,25 +25,20 @@ import com.karumi.dexter.listener.PermissionGrantedResponse;
 import com.karumi.dexter.listener.PermissionRequest;
 import com.karumi.dexter.listener.single.PermissionListener;
 
-import org.w3c.dom.Text;
-
 public class MainActivity extends AppCompatActivity {
 
     ActivityMainBinding binding;
     ActivityResultLauncher<String> cropImage;
-    Uri slice;
-    Uri inputImage;
-    TextView sliceTxt;
-    TextView inputImageTxt;
+    Button selectImageButton;
+    ImageView imageView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        selectImageButton = (Button) findViewById(R.id.selectImageButton);
+        imageView = (ImageView) findViewById(R.id.imageView);
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-
-        sliceTxt = (TextView) findViewById(R.id.sliceTxt);
-        inputImageTxt = (TextView) findViewById(R.id.inputImageTxt);
 
         cropImage = registerForActivityResult(new ActivityResultContracts.GetContent(), result -> {
             Intent intent = new Intent(MainActivity.this.getApplicationContext(), CropperActivity.class);
@@ -50,7 +46,7 @@ public class MainActivity extends AppCompatActivity {
             startActivityForResult(intent, 100);
         });
 
-        binding.selectImageButton.setOnClickListener(new View.OnClickListener() {
+        selectImageButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 ImagePermission();
@@ -84,14 +80,12 @@ public class MainActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
         if(requestCode == 100 && resultCode == 101){
             String result = data.getStringExtra("CROP");
-            inputImage = data.getData();
+            Uri uri = data.getData();
             if (result!=null){
-                slice = Uri.parse(result);
+                uri = Uri.parse(result);
             }
-            binding.sliceView.setImageURI(slice);
-            binding.inputImageView.setImageURI(CropperActivity.inputImage);
-            sliceTxt.setText("Find amount of this object:");
-            inputImageTxt.setText("In this image:");
+
+            imageView.setImageURI(uri);
         }
     }
 }
