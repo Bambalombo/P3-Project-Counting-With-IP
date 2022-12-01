@@ -71,7 +71,6 @@ def edgeWithSobel(img):
     output = cv.add(verticalApply, horizontalApply)
     return output
 
-
 def grassfire(img, whitepixel=255):
     """
 
@@ -309,10 +308,13 @@ def testMaxima():
 if __name__ == "__main__":
     startTime = time.time()
     #main()
-    testGuassian()
+    #testGuassian()
     #testMaxima()
+    d = 2
 
-
+    for i in range (3):
+        d = 4
+    print(d)
     print(f'Tid = {time.time() - startTime} s')
     cv.waitKey(0)
     cv.destroyAllWindows()
