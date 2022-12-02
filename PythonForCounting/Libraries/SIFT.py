@@ -40,12 +40,12 @@ def convolve(image, kernel):
         return output
 
 
-def differenceOfGaussian(image, SD, octave, numberOfDoGs=5):
+def differenceOfGaussian(image, SD, octave, scale_ratio, numberOfDoGs=5):
     gaussianKernel = makeGaussianKernel(SD * octave)
     borderimage = bd.addborder_reflect(image, gaussianKernel.shape[0])
     blurredPictures = [convolve(borderimage, gaussianKernel)]
     # blurredPictures = [cv.GaussianBlur(image,(0,0),sigmaX=SD*octave,sigmaY=SD*octave)]
-    k = (octave * 2) ** (1. / (numberOfDoGs - 2))
+    k = (octave * scale_ratio) ** (1. / (numberOfDoGs - 2))
     for i in range(1, numberOfDoGs + 1):
         guassiankernel = makeGaussianKernel(SD * (k ** i))
         blurredPictures.append(convolve(borderimage, gaussianKernel))
@@ -57,7 +57,7 @@ def differenceOfGaussian(image, SD, octave, numberOfDoGs=5):
     return DoG
 
 
-def defineKeyPointsFromPixelExtrema(DoG_array):
+def defineKeyPointsFromPixelExtrema(DoG_array,octave_index, SD, scale_ratio):
     """
     Vi vil finde ekstrema (vores keypoints). Processen overordnet:
     - Hvert scalespace består af 3 DoG billeder.
@@ -79,7 +79,7 @@ def defineKeyPointsFromPixelExtrema(DoG_array):
             return True
         return False
 
-    def specifyExtremumLocation(y,x,current_scale_space,pixel_cube,current_DoG_stack,image_index, number_of_attempts = 5):
+    def specifyExtremumLocation(y,x,current_scale_space,current_DoG_stack,current_octave,image_index,SD, scale_ratio, number_of_attempts = 5, strenght_threshold = 0.03, eigenvalue_ratio_threshold = 10):
         """
         Metode for at beregne den præcise placering af extremum i en 3x3x3 cube af pixels.
         """
@@ -113,7 +113,13 @@ def defineKeyPointsFromPixelExtrema(DoG_array):
 
         def calculateHessian(pixel_cube):
             """
-            Hovedkrumning
+            Hessian regnes ud når vi har fundet et ekstremum. Værdierne i en hessian kan bruges til at se hvor et
+            keypoint ligger henne. Vi er interesserede i at se om det ligger på en linje eller en i et hjørne. Essensen
+            er: Hvis det ligger på en linje er vi rimelig ligeglade med keypointet da det kan være svært at sammenligne
+            om to keypoints ligger det samme sted langs en linje. Hvis det derimod ligger i et hjørne er det lettere at
+            sammenligne om de to keypoints er placeret tæt på hinanden og om de er ens.
+
+            Hessian bruges i bund og grund til at kigge på om
             """
             center_pixel_value = pixel_cube[1, 1, 1]
 
@@ -157,7 +163,22 @@ def defineKeyPointsFromPixelExtrema(DoG_array):
                 return None
             image_top, image_mid, image_bot = current_DoG_stack[image_index-1: image_index+2]
             print(image_top,image_mid,image_bot)
-        maximum_strength = image_mid[1,1] + (0.5 * np.dot(gradient, offset))
+
+        extremum_strength = image_mid[1,1] + (0.5 * np.dot(gradient, offset))
+
+        if abs(extremum_strength) > strenght_threshold:
+            one_image_hessian = hessian[:2,:2]
+            hessian_trace = np.trace(one_image_hessian)
+            hessian_determinant = np.det(one_image_hessian)
+            if hessian_determinant > 0 and (hessian_trace ** 2)/hessian_determinant < ((eigenvalue_ratio_threshold+1)**2)/eigenvalue_ratio_threshold:
+                keypoint = KeyPoint((image_mid[1,1][0]+offset[0],image_mid[1,1][0]+offset[0]),extremum_strength,current_octave,image_index+1,1/current_octave,SD*((scale_ratio**(1/(len(current_DoG_stack)-2))**image_index)*(scale_ratio**current_octave)))
+                return keypoint,image_index
+        return None
+
+    def computeKeypointOrientations(keypoint,current_octave,image):
+        pass
+
+
 
     ### --- defineKeyPointsFromPixelExtrema --- ###
 
@@ -188,4 +209,7 @@ def defineKeyPointsFromPixelExtrema(DoG_array):
                 # -- Vi skal bare vide at afhængig af de andre pixels værdier i cuben, så er det IKKE sikkert at selve
                 # -- toppunktet vi netop har fundet, ligger indenfor den samme pixel celle.
                 if centerPixelIsExtrema(current_pixel_cube):
-                    result = specifyExtremumLocation(y,x,current_scale_space_DoG_images,current_pixel_cube, DoG_array,image_index=(scale_space_index+1) )
+                    result = specifyExtremumLocation(y,x,current_scale_space_DoG_images, DoG_array,octave_index,(scale_space_index+1),SD,scale_ratio)
+                    if result is not None:
+                        keypoint_without_orientation, keypoint_image_index = result
+                        keypoints_with_orientation = computeKeypointOrientations(keypoint_without_orientation,octave_index,current_scale_space_DoG_images[keypoint_image_index])

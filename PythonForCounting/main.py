@@ -310,11 +310,6 @@ if __name__ == "__main__":
     #main()
     #testGuassian()
     #testMaxima()
-    d = 2
-
-    for i in range (3):
-        d = 4
-    print(d)
     print(f'Tid = {time.time() - startTime} s')
     cv.waitKey(0)
     cv.destroyAllWindows()
