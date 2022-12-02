@@ -30,15 +30,15 @@
         android:textSize="20dp"
         android:id="@+id/inputImageTxt"/>
 
+    <Button
+        android:id="@+id/selectImageButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Import Image" />
+
     <ImageView
         android:layout_marginTop="10dp"
         android:layout_width="match_parent"
         android:layout_height="400dp"
         android:id="@+id/inputImageView"/>
-    <Button
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="20dp"
-        android:text="Import Image"
-        android:id="@+id/selectImageButton"/>
 </LinearLayout>

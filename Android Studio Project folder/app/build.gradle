@@ -1,10 +1,17 @@
 plugins {
     id 'com.android.application'
+    id 'com.chaquo.python'
 }
 
 android {
     namespace 'com.example.countingapplication'
     compileSdk 32
+
+    sourceSets {
+        main{
+            python.srcDir "src/main/python"
+        }
+    }
 
     defaultConfig {
         applicationId "com.example.countingapplication"
@@ -14,6 +21,14 @@ android {
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        ndk{
+            abiFilters "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
+        }
+
+        python{
+            version "3.8"
+        }
     }
 
     buildFeatures{
