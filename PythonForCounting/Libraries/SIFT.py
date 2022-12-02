@@ -57,13 +57,14 @@ def differenceOfGaussian(image, SD, octave, scale_ratio, numberOfDoGs=5):
     return DoG
 
 
-def defineKeyPointsFromPixelExtrema(DoG_array,octave_index, SD, scale_ratio):
+def defineKeyPointsFromPixelExtrema(DoG_array, octave_index, SD, scale_ratio):
     """
     Vi vil finde ekstrema (vores keypoints). Processen overordnet:
     - Hvert scalespace består af 3 DoG billeder.
     - Vi looper igennem alle pixels og laver en 3x3x3 cube fra midterste billedes pixels.
     - For hver cube finder vi ud af om den midterste pixel er et extremum (minimum eller maximum værdien i cuben).
     """
+
     def centerPixelIsExtrema(pixel_cube):
         """
         METODE-DEFINITION: KALDES NEDENUNDER
@@ -79,10 +80,12 @@ def defineKeyPointsFromPixelExtrema(DoG_array,octave_index, SD, scale_ratio):
             return True
         return False
 
-    def specifyExtremumLocation(y,x,current_scale_space,current_DoG_stack,current_octave,image_index,SD, scale_ratio, number_of_attempts = 5, strenght_threshold = 0.03, eigenvalue_ratio_threshold = 10):
+    # Indeholder også definitionerne for calculateGradient() og calculateHessian()
+    def specifyExtremumLocation(y, x, current_scale_space, current_DoG_stack, current_octave, image_index, SD, scale_ratio, number_of_attempts=5, strenght_threshold=0.03, eigenvalue_ratio_threshold=10):
         """
         Metode for at beregne den præcise placering af extremum i en 3x3x3 cube af pixels.
         """
+
         def calculateGradient(pixel_cube):
             """
             Den her metode er til for at beregne gradient (retningen for en border i et billede).
@@ -116,10 +119,15 @@ def defineKeyPointsFromPixelExtrema(DoG_array,octave_index, SD, scale_ratio):
             Hessian regnes ud når vi har fundet et ekstremum. Værdierne i en hessian kan bruges til at se hvor et
             keypoint ligger henne. Vi er interesserede i at se om det ligger på en linje eller en i et hjørne. Essensen
             er: Hvis det ligger på en linje er vi rimelig ligeglade med keypointet da det kan være svært at sammenligne
-            om to keypoints ligger det samme sted langs en linje. Hvis det derimod ligger i et hjørne er det lettere at
-            sammenligne om de to keypoints er placeret tæt på hinanden og om de er ens.
+            om to keypoints ligger det samme sted langs en linje (Dette er tilfældet hvis et keypoint hovedsagligt har
+            en høj værdi i en enkelt retning). Hvis det derimod ligger i et hjørne er det lettere at sammenligne om de
+            to keypoints er placeret tæt på hinanden og om de er ens (Vi ser et keypoint som bedre og mere beskrivende
+            hvis det har høje værdier i flere retninger. Det betyder at det ligger hvor flere linjer krydser/ligger tæt
+            som fx et hjørne eller et knudepunkt. Disse er mere interessante da de er mere karakteristiske end bare
+            punkter langs en linje).
 
-            Hessian bruges i bund og grund til at kigge på om
+            Hessian bruges i bund og grund til at kigge på om et keypoint er "godt nok" til at kunne bruges senere til
+            at finde ligheder imellem keypoints.
             """
             center_pixel_value = pixel_cube[1, 1, 1]
 
@@ -131,7 +139,7 @@ def defineKeyPointsFromPixelExtrema(DoG_array,octave_index, SD, scale_ratio):
             dxs = 0.25 * (pixel_cube[2, 1, 2] - pixel_cube[2, 1, 0] - pixel_cube[0, 1, 2] + pixel_cube[0, 1, 0])
             dys = 0.25 * (pixel_cube[2, 2, 1] - pixel_cube[2, 0, 1] - pixel_cube[0, 2, 1] + pixel_cube[0, 0, 1])
 
-            return np.array([[dxx, dxy, dxs],[dxy, dyy, dys],[dxs, dys, dss]])
+            return np.array([[dxx, dxy, dxs], [dxy, dyy, dys], [dxs, dys, dss]])
 
         ### --- specifyExtremumLocation --- ###
 
@@ -141,42 +149,48 @@ def defineKeyPointsFromPixelExtrema(DoG_array,octave_index, SD, scale_ratio):
 
         # Vi definerer et for-loop, der sætter et max for hvor mange gange, vi vil forsøge at tilnærme os placeringen
         for attemt in range(number_of_attempts):
-            pixel_cube = np.array([image_top[y-1:y+2, x-1:x+2],
-                                   image_mid[y-1:y+2, x-1:x+2],
-                                   image_bot[y-1:y+2, x-1:x+2]]).astype('float32') / 255.0
+            pixel_cube = np.array([image_top[y - 1:y + 2, x - 1:x + 2],
+                                   image_mid[y - 1:y + 2, x - 1:x + 2],
+                                   image_bot[y - 1:y + 2, x - 1:x + 2]]).astype('float32') / 255.0
             # Gradient beregnes. Læs metode for uddybelse.
             gradient = calculateGradient(pixel_cube)
             # Hessian beregnes. Læs metode for uddybelse.
             hessian = calculateHessian(pixel_cube)
             #
-            offset = -np.lstsq(hessian,gradient, rcond=None)[0]
+            offset = -np.lstsq(hessian, gradient, rcond=None)[0]
 
             if all(abs(offset) < 0.5):
                 break
             y += int(round(offset[0]))
             x += int(round(offset[1]))
             image_index = int(round(offset[2]))
-            if y < 3 or y > image_mid.shape[0] - 3 or x < 3 or x > image_mid.shape[1] - 3 or image_index < 1 or image_index > len(current_DoG_stack)-2:
+            if y < 3 or y > image_mid.shape[0] - 3 or x < 3 or x > image_mid.shape[
+                1] - 3 or image_index < 1 or image_index > len(current_DoG_stack) - 2:
                 # Det beregnede punkt er endten for tæt på kanten, eller uden for billedet, derfor er keypointet her ikke stabilt
                 return None
-            if attemt >= number_of_attempts-1:
+            if attemt >= number_of_attempts - 1:
                 return None
-            image_top, image_mid, image_bot = current_DoG_stack[image_index-1: image_index+2]
-            print(image_top,image_mid,image_bot)
+            image_top, image_mid, image_bot = current_DoG_stack[image_index - 1: image_index + 2]
+            print(image_top, image_mid, image_bot)
 
-        extremum_strength = image_mid[1,1] + (0.5 * np.dot(gradient, offset))
+        extremum_strength = image_mid[1, 1] + (0.5 * np.dot(gradient, offset))
 
         if abs(extremum_strength) > strenght_threshold:
-            one_image_hessian = hessian[:2,:2]
+            one_image_hessian = hessian[:2, :2]
             hessian_trace = np.trace(one_image_hessian)
             hessian_determinant = np.det(one_image_hessian)
-            if hessian_determinant > 0 and (hessian_trace ** 2)/hessian_determinant < ((eigenvalue_ratio_threshold+1)**2)/eigenvalue_ratio_threshold:
-                keypoint = KeyPoint((image_mid[1,1][0]+offset[0],image_mid[1,1][0]+offset[0]),extremum_strength,current_octave,image_index+1,1/current_octave,SD*((scale_ratio**(1/(len(current_DoG_stack)-2))**image_index)*(scale_ratio**current_octave)))
-                return keypoint,image_index
+            if hessian_determinant > 0 and (hessian_trace ** 2) / hessian_determinant < (
+                    (eigenvalue_ratio_threshold + 1) ** 2) / eigenvalue_ratio_threshold:
+                keypoint = KeyPoint((image_mid[1, 1][0] + offset[0], image_mid[1, 1][0] + offset[0]), extremum_strength,
+                                    current_octave, image_index + 1, 1 / current_octave, SD * (
+                                                (scale_ratio ** (1 / (len(current_DoG_stack) - 2)) ** image_index) * (
+                                                    scale_ratio ** current_octave)))
+                return keypoint, image_index
         return None
 
-    def computeKeypointOrientations(keypoint,current_octave,image):
-        pass
+    def computeKeypointOrientations(keypoint, current_octave, image):
+        keypoints_with_orientation = []
+        image_shape = image.shape
 
 
 
@@ -200,7 +214,7 @@ def defineKeyPointsFromPixelExtrema(DoG_array,octave_index, SD, scale_ratio):
                 # Her vil vi udføre et tjek om den givne pixel er et extremum i vores oktav. Altså vi vil tjekke om
                 # -- denne pixel er ENTEN den største ELLER den mindste i sin pixel-cube. Først opretter vi cuben. Det
                 # -- gøres ved at slice de tre billeder som udgør den nuværende oktav på en måde så y,x er vores midte.
-                current_scale_space_DoG_images = (image_top,image_mid,image_bot)
+                current_scale_space_DoG_images = (image_top, image_mid, image_bot)
                 current_pixel_cube = np.array([image_top[y - 1:y + 2, x - 1:x + 2],
                                                image_mid[y - 1:y + 2, x - 1:x + 2],
                                                image_bot[y - 1:y + 2, x - 1:x + 2]])
@@ -209,7 +223,8 @@ def defineKeyPointsFromPixelExtrema(DoG_array,octave_index, SD, scale_ratio):
                 # -- Vi skal bare vide at afhængig af de andre pixels værdier i cuben, så er det IKKE sikkert at selve
                 # -- toppunktet vi netop har fundet, ligger indenfor den samme pixel celle.
                 if centerPixelIsExtrema(current_pixel_cube):
-                    result = specifyExtremumLocation(y,x,current_scale_space_DoG_images, DoG_array,octave_index,(scale_space_index+1),SD,scale_ratio)
+                    result = specifyExtremumLocation(y, x, current_scale_space_DoG_images, DoG_array, octave_index,
+                                                     (scale_space_index + 1), SD, scale_ratio)
                     if result is not None:
                         keypoint_without_orientation, keypoint_image_index = result
-                        keypoints_with_orientation = computeKeypointOrientations(keypoint_without_orientation,octave_index,current_scale_space_DoG_images[keypoint_image_index])
+                        keypoint_with_orientations = computeKeypointOrientations(keypoint_without_orientation, octave_index, current_scale_space_DoG_images[keypoint_image_index])
