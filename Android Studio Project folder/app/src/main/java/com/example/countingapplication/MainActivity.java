@@ -17,6 +17,7 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.chaquo.python.PyObject;
 import com.chaquo.python.Python;
 import com.chaquo.python.android.AndroidPlatform;
 import com.example.countingapplication.databinding.ActivityMainBinding;
@@ -45,9 +46,6 @@ public class MainActivity extends AppCompatActivity {
         if (!Python.isStarted()){
             Python.start(new AndroidPlatform(this));
         }
-
-        Python py = Python.getInstance();
-        Python pyobj = py.getModule("");
 
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
@@ -99,6 +97,9 @@ public class MainActivity extends AppCompatActivity {
             if (result!=null){
                 slice = Uri.parse(result);
             }
+            Python py = Python.getInstance();
+            final PyObject pyobj = py.getModule("fastOpenCVVersion");
+            pyobj.callAttr("makeGrayscale", inputImage);
             binding.sliceView.setImageURI(slice);
             binding.inputImageView.setImageURI(CropperActivity.inputImage);
             sliceTxt.setText("Find amount of this object:");
