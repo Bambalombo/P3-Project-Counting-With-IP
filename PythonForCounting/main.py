@@ -12,6 +12,7 @@ from Libraries import bordering as bd
 from Libraries import Outlining as outl
 from Libraries import FeatureMatching as fm
 from Libraries import SIFT
+from Libraries.OurKeyPoint import KeyPoint
 import time
 
 def makeImagePyramide(startingImage, scale, minWidth):
@@ -283,14 +284,17 @@ def temp_main():
 def testGuassian():
     inputPicture = cv.imread('Images/candlelightsOnVaryingBackground.jpg')
     greyscaleInput = makeGrayscale(inputPicture).astype('float32')
-    for p, image in enumerate(makeImagePyramide(greyscaleInput,2,150)):
-        DoG = SIFT.differenceOfGaussian(image, 1.6, p+1, 5)
-        break
-        for i, picture in enumerate(DoG):
-            print(picture)
-            cv.imshow(f'Octave: {p}, Dog: {i}', picture)
+    keypoints = []
+    scalefactor = 2
+    SD = 1.6
+    for p, image in enumerate(makeImagePyramide(greyscaleInput,scalefactor,150)):
+        DoG = SIFT.differenceOfGaussian(image, SD, p+1, scalefactor,5)
+        keypoints.extend(SIFT.defineKeyPointsFromPixelExtrema(DoG, p+1,SD, scalefactor))
+    print(len(keypoints))
+    for keypoint in keypoints:
 
-    SIFT.defineKeyPointsFromPixelExtrema(DoG)
+        print(keypoint.size_radius)
+
 
 
 def testMaxima():
@@ -303,12 +307,13 @@ def testMaxima():
     img_array.append(img2)
     img_array.append(img3)
 
-    SIFT.defineKeyPointsFromPixelExtrema(img_array)
+    keypoints = SIFT.defineKeyPointsFromPixelExtrema(img_array)
+    print(keypoints.size)
 
 if __name__ == "__main__":
     startTime = time.time()
     #main()
-    #testGuassian()
+    testGuassian()
     #testMaxima()
     print(f'Tid = {time.time() - startTime} s')
     cv.waitKey(0)

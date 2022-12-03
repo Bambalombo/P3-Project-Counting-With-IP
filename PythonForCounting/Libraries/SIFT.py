@@ -165,18 +165,19 @@ def defineKeyPointsFromPixelExtrema(DoG_array,octave_index, SD, scale_ratio):
             print(image_top,image_mid,image_bot)
 
         extremum_strength = image_mid[1,1] + (0.5 * np.dot(gradient, offset))
-
+        print(extremum_strength)
         if abs(extremum_strength) > strenght_threshold:
             one_image_hessian = hessian[:2,:2]
             hessian_trace = np.trace(one_image_hessian)
             hessian_determinant = np.det(one_image_hessian)
             if hessian_determinant > 0 and (hessian_trace ** 2)/hessian_determinant < ((eigenvalue_ratio_threshold+1)**2)/eigenvalue_ratio_threshold:
-                keypoint = KeyPoint((image_mid[1,1][0]+offset[0],image_mid[1,1][0]+offset[0]),extremum_strength,current_octave,image_index+1,1/current_octave,SD*((scale_ratio**(1/(len(current_DoG_stack)-2))**image_index)*(scale_ratio**current_octave)))
-                return keypoint,image_index
+                keypoint = KeyPoint((image_mid[1,1][0]+offset[0],image_mid[1,1][0]+offset[0]),extremum_strength,current_octave,image_index+1,1/current_octave,SD*((scale_ratio**(1/(len(current_DoG_stack)-2))**image_index)*(scale_ratio**(current_octave-1))))
+                return keypoint, image_index
         return None
 
     def computeKeypointOrientations(keypoint,current_octave,image):
-        pass
+        output_keypoints = []
+
 
 
 
@@ -209,7 +210,11 @@ def defineKeyPointsFromPixelExtrema(DoG_array,octave_index, SD, scale_ratio):
                 # -- Vi skal bare vide at afhængig af de andre pixels værdier i cuben, så er det IKKE sikkert at selve
                 # -- toppunktet vi netop har fundet, ligger indenfor den samme pixel celle.
                 if centerPixelIsExtrema(current_pixel_cube):
+                    print("we get extrema")
                     result = specifyExtremumLocation(y,x,current_scale_space_DoG_images, DoG_array,octave_index,(scale_space_index+1),SD,scale_ratio)
                     if result is not None:
+                        print("i get some results")
                         keypoint_without_orientation, keypoint_image_index = result
+                        keypoints.append(keypoint_without_orientation)
                         keypoints_with_orientation = computeKeypointOrientations(keypoint_without_orientation,octave_index,current_scale_space_DoG_images[keypoint_image_index])
+    return keypoints
