@@ -43,13 +43,13 @@ def convolve(image, kernel):
 def differenceOfGaussian(image, SD, octave, scale_ratio, numberOfDoGs=5):
     gaussianKernel = makeGaussianKernel(SD * octave)
     borderimage = bd.addborder_reflect(image, gaussianKernel.shape[0])
-    blurredPictures = [convolve(borderimage, gaussianKernel)]
-    # blurredPictures = [cv.GaussianBlur(image,(0,0),sigmaX=SD*octave,sigmaY=SD*octave)]
+    #blurredPictures = [convolve(borderimage, gaussianKernel)]
+    blurredPictures = [cv.GaussianBlur(image,(0,0),sigmaX=SD*octave,sigmaY=SD*octave)]
     k = (octave * scale_ratio) ** (1. / (numberOfDoGs - 2))
     for i in range(1, numberOfDoGs + 1):
         guassiankernel = makeGaussianKernel(SD * (k ** i))
-        blurredPictures.append(convolve(borderimage, gaussianKernel))
-        # blurredPictures.append(cv.GaussianBlur(image,(0,0),sigmaX=(SD * (k**i)),sigmaY=(SD * (k**i))))
+        #blurredPictures.append(convolve(borderimage, gaussianKernel))
+        blurredPictures.append(cv.GaussianBlur(image,(0,0),sigmaX=(SD * (k**i)),sigmaY=(SD * (k**i))))
 
     DoG = []
     for (bottomPicture, topPicture) in zip(blurredPictures, blurredPictures[1:]):
@@ -145,7 +145,6 @@ def defineKeyPointsFromPixelExtrema(DoG_array, octave_index, SD, scale_ratio):
 
         # Vi pakker billederne ud som vi passerede fra før
         image_top, image_mid, image_bot = current_scale_space
-        print(image_top, image_mid, image_bot)
 
         # Vi definerer et for-loop, der sætter et max for hvor mange gange, vi vil forsøge at tilnærme os placeringen
         for attemt in range(number_of_attempts):
@@ -157,7 +156,7 @@ def defineKeyPointsFromPixelExtrema(DoG_array, octave_index, SD, scale_ratio):
             # Hessian beregnes. Læs metode for uddybelse.
             hessian = calculateHessian(pixel_cube)
             #
-            offset = -np.lstsq(hessian, gradient, rcond=None)[0]
+            offset = -np.linalg.lstsq(hessian, gradient, rcond=None)[0]
 
             if all(abs(offset) < 0.5):
                 break
@@ -171,7 +170,6 @@ def defineKeyPointsFromPixelExtrema(DoG_array, octave_index, SD, scale_ratio):
             if attemt >= number_of_attempts - 1:
                 return None
             image_top, image_mid, image_bot = current_DoG_stack[image_index - 1: image_index + 2]
-            print(image_top, image_mid, image_bot)
 
 
         extremum_strength = image_mid[1,1] + (0.5 * np.dot(gradient, offset))
@@ -179,9 +177,9 @@ def defineKeyPointsFromPixelExtrema(DoG_array, octave_index, SD, scale_ratio):
         if abs(extremum_strength) > strenght_threshold:
             one_image_hessian = hessian[:2, :2]
             hessian_trace = np.trace(one_image_hessian)
-            hessian_determinant = np.det(one_image_hessian)
+            hessian_determinant = np.linalg.det(one_image_hessian)
             if hessian_determinant > 0 and (hessian_trace ** 2)/hessian_determinant < ((eigenvalue_ratio_threshold+1)**2)/eigenvalue_ratio_threshold:
-                keypoint = KeyPoint((image_mid[1,1][0]+offset[0],image_mid[1,1][0]+offset[0]),extremum_strength,current_octave,image_index+1,1/current_octave,SD*((scale_ratio**(1/(len(current_DoG_stack)-2))**image_index)*(scale_ratio**(current_octave-1))))
+                keypoint = KeyPoint((y+offset[0],x+offset[1]),extremum_strength,current_octave,image_index+1,1/current_octave,SD*((scale_ratio**(1/(len(current_DoG_stack)-2))**image_index)*(scale_ratio**(current_octave-1))))
                 return keypoint, image_index
         return None
 
@@ -226,6 +224,6 @@ def defineKeyPointsFromPixelExtrema(DoG_array, octave_index, SD, scale_ratio):
                         print("i get some results")
                         keypoint_without_orientation, keypoint_image_index = result
                         keypoints.append(keypoint_without_orientation)
-                        keypoints_with_orientation = computeKeypointOrientations(keypoint_without_orientation,octave_index,current_scale_space_DoG_images[keypoint_image_index])
+                        #keypoints_with_orientation = computeKeypointOrientations(keypoint_without_orientation,octave_index,current_scale_space_DoG_images[keypoint_image_index])
     return keypoints
 
