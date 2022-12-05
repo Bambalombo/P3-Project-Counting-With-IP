@@ -201,6 +201,8 @@ def returnScoreAndImageWithOutlines(image, hits, nmsTreshhold = 0.3):
         cv.putText(outputImage,f'Score: {int(scores[i])}', (startx,starty),cv.FONT_HERSHEY_PLAIN, 1, (255,255,255))
 
     return len(hitScores), outputImage
+
+
 def temp_test():
     """
     En funktion der indeholder alle mine metodekald når jeg tester forskellige features undervejs.
@@ -281,19 +283,27 @@ def temp_main():
     img_grayscale_corrected = el.illumination_mean_filter_2D(img_grayscale,151)
     cv.imshow('grayscale_corrected',img_grayscale_corrected)
 
+
 def testGuassian():
     inputPicture = cv.imread('Images/candlelightsOnVaryingBackground.jpg')
-    greyscaleInput = makeGrayscale(inputPicture).astype('float32')
+    greyscaleInput = makeGrayscale(inputPicture.copy())
+    greyscaleInputAsFloat32 = greyscaleInput.astype("float32")
     keypoints = []
     scalefactor = 2
     SD = 1.6
-    for p, image in enumerate(makeImagePyramide(greyscaleInput,scalefactor,150)):
+    for p, image in enumerate(makeImagePyramide(greyscaleInputAsFloat32,scalefactor,30)):
+        print('Creating DoG array ...')
         DoG = SIFT.differenceOfGaussian(image, SD, p+1, scalefactor,5)
-        keypoints.extend(SIFT.defineKeyPointsFromPixelExtrema(DoG, p+1,SD, scalefactor))
-    print(len(keypoints))
-    for keypoint in keypoints:
-        print(f'O: {keypoint.octave}, S: {keypoint.size_radius}')
+        print('Calculating keypoints ...')
+        found_keypoints = SIFT.defineKeyPointsFromPixelExtrema(DoG, p+1,SD, scalefactor)
+        keypoints.extend(found_keypoints)
+        print(f'\t - keypoints found in octave {p+1}: {len(found_keypoints)}')
 
+    print(f'keypoints in total: {keypoints}')
+    print(f'Drawing keypoints ...')
+    for keypoint in keypoints:
+        cv.circle(inputPicture, (int(round(keypoint.coordinates[1]/keypoint.image_scale)),int(round(keypoint.coordinates[0]/keypoint.image_scale))), 2, color=(0, 0, 255),thickness=-1)
+    cv.imshow('keypoints', inputPicture)
 
 
 def testMaxima():
@@ -310,11 +320,12 @@ def testMaxima():
     print(keypoints.size)
 
 if __name__ == "__main__":
+    print(f'Starting timer:')
     startTime = time.time()
     #main()
     testGuassian()
     #testMaxima()
-    print(f'Tid = {time.time() - startTime} s')
+    print(f'Timer ended: Total time = {time.time() - startTime} s')
     cv.waitKey(0)
     cv.destroyAllWindows()
 
