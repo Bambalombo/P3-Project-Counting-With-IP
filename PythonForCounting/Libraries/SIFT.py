@@ -65,132 +65,6 @@ def defineKeyPointsFromPixelExtrema(DoG_array, octave_index, SD, scale_ratio):
     - For hver cube finder vi ud af om den midterste pixel er et extremum (minimum eller maximum værdien i cuben).
     """
 
-    def centerPixelIsExtrema(pixel_cube):
-        """
-        METODE-DEFINITION: KALDES NEDENUNDER
-        -----
-        Her gemmer vi værdien for center pixelen og så ændrer vi efterfølgende centerpixelens værdi i cuben til 0, så
-        den efterfølgende ikke tælles med i tjekket for om den er et extremum. Så kan vi nemlig bruge .all()
-        """
-        center_pixel = image_mid[y, x].copy()
-        pixel_cube[1, 1, 1] = 0  # set center pixel to 0
-        # Vi tjekker her om center_pixel er større end alle andre pixels
-        # --
-        if (center_pixel > pixel_cube).all() or (center_pixel < pixel_cube).all():
-            return True
-        return False
-
-    # Indeholder også definitionerne for calculateGradient() og calculateHessian()
-    def specifyExtremumLocation(y, x, current_scale_space, current_DoG_stack, current_octave, image_index, SD, scale_ratio, number_of_attempts=5, strenght_threshold=0.03, eigenvalue_ratio_threshold=10):
-        """
-        Metode for at beregne den præcise placering af extremum i en 3x3x3 cube af pixels.
-        """
-
-        def calculateGradient(pixel_cube):
-            """
-            Den her metode er til for at beregne gradient (retningen for en border i et billede).
-            -----
-            Gradient beregnes ved følgende formel (husk vi skal helst bare forstå hvorfor vi bruger matematikken og ikke
-            nødvendigvis hvordan den virker):
-            f'(x) = (f(x + s) - f(x - s)) / (2 * s)
-            I formlen står x for koordinat og s for step, altså størrelsen af skridtet mellem hver værdi. Da vi her har
-            at gøre med pixels i et grid er s (afstanden mellem hver pixel) lig med 1, så vi kan i stedet skrive:
-            f'(x) = (f(x + 1) - f(x - 1)) / 2.
-            Her tager vi udgangspunkt i centerpixelen. Vi husker at pixel_cube har holder pixel_cube[top,mid,bot], hvor
-            top, mid og bot hver er et 3x3 slice af et billede.
-            """
-
-            # Først regner vi x. Vi vil gerne finde forskellen over x-aksen. Derfor skriver vi 1 i første indgang (altså
-            # -- midterste billede), med 1 i anden indgang (i midten af y aksen). Og så tager vi x=2 og x=0 og trækker
-            # -- fra hinanden. Så
-            dx = (pixel_cube[1, 1, 2] - pixel_cube[1, 1, 0]) / 2
-
-            # Samme for y. Første indgag (top/mid/bot) er 1 igen. Nu er det y ændres mellem 2 og 0, og x er 1 konstant.
-            dy = (pixel_cube[1, 2, 1] - pixel_cube[1, 0, 1]) / 2
-
-            # For den sidste er det forskellen over de tre billeder i laget, så her ændres første indgang mellem 0 og 2.
-            # -- y og x er konstante.
-            ds = (pixel_cube[2, 1, 1] - pixel_cube[0, 1, 1]) / 2
-
-            return np.array([dx, dy, ds])
-
-        def calculateHessian(pixel_cube):
-            """
-            Hessian regnes ud når vi har fundet et ekstremum. Værdierne i en hessian kan bruges til at se hvor et
-            keypoint ligger henne. Vi er interesserede i at se om det ligger på en linje eller en i et hjørne. Essensen
-            er: Hvis det ligger på en linje er vi rimelig ligeglade med keypointet da det kan være svært at sammenligne
-            om to keypoints ligger det samme sted langs en linje (Dette er tilfældet hvis et keypoint hovedsagligt har
-            en høj værdi i en enkelt retning). Hvis det derimod ligger i et hjørne er det lettere at sammenligne om de
-            to keypoints er placeret tæt på hinanden og om de er ens (Vi ser et keypoint som bedre og mere beskrivende
-            hvis det har høje værdier i flere retninger. Det betyder at det ligger hvor flere linjer krydser/ligger tæt
-            som fx et hjørne eller et knudepunkt. Disse er mere interessante da de er mere karakteristiske end bare
-            punkter langs en linje).
-
-            Hessian bruges i bund og grund til at kigge på om et keypoint er "godt nok" til at kunne bruges senere til
-            at finde ligheder imellem keypoints.
-            """
-            center_pixel_value = pixel_cube[1, 1, 1]
-
-            dxx = pixel_cube[1, 1, 2] - 2 * center_pixel_value + pixel_cube[1, 1, 0]
-            dyy = pixel_cube[1, 2, 1] - 2 * center_pixel_value + pixel_cube[1, 0, 1]
-            dss = pixel_cube[2, 1, 1] - 2 * center_pixel_value + pixel_cube[0, 1, 1]
-
-            dxy = 0.25 * (pixel_cube[1, 2, 2] - pixel_cube[1, 2, 0] - pixel_cube[1, 0, 2] + pixel_cube[1, 0, 0])
-            dxs = 0.25 * (pixel_cube[2, 1, 2] - pixel_cube[2, 1, 0] - pixel_cube[0, 1, 2] + pixel_cube[0, 1, 0])
-            dys = 0.25 * (pixel_cube[2, 2, 1] - pixel_cube[2, 0, 1] - pixel_cube[0, 2, 1] + pixel_cube[0, 0, 1])
-
-            return np.array([[dxx, dxy, dxs], [dxy, dyy, dys], [dxs, dys, dss]])
-
-        ### --- specifyExtremumLocation --- ###
-
-        # Vi pakker billederne ud som vi passerede fra før
-        image_top, image_mid, image_bot = current_scale_space
-
-        # Vi definerer et for-loop, der sætter et max for hvor mange gange, vi vil forsøge at tilnærme os placeringen
-        for attemt in range(number_of_attempts):
-            pixel_cube = np.array([image_top[y - 1:y + 2, x - 1:x + 2],
-                                   image_mid[y - 1:y + 2, x - 1:x + 2],
-                                   image_bot[y - 1:y + 2, x - 1:x + 2]]).astype('float32') / 255.0
-            # Gradient beregnes. Læs metode for uddybelse.
-            gradient = calculateGradient(pixel_cube)
-            # Hessian beregnes. Læs metode for uddybelse.
-            hessian = calculateHessian(pixel_cube)
-            #
-            offset = -np.linalg.lstsq(hessian, gradient, rcond=None)[0]
-
-            if all(abs(offset) < 0.5):
-                break
-            y += int(round(offset[0]))
-            x += int(round(offset[1]))
-            image_index = int(round(offset[2]))
-            if y < 3 or y > image_mid.shape[0] - 3 or x < 3 or x > image_mid.shape[
-                1] - 3 or image_index < 1 or image_index > len(current_DoG_stack) - 2:
-                # Det beregnede punkt er endten for tæt på kanten, eller uden for billedet, derfor er keypointet her ikke stabilt
-                return None
-            if attemt >= number_of_attempts - 1:
-                return None
-            image_top, image_mid, image_bot = current_DoG_stack[image_index - 1: image_index + 2]
-
-
-        extremum_strength = image_mid[1,1] + (0.5 * np.dot(gradient, offset))
-        print(extremum_strength)
-        if abs(extremum_strength) > strenght_threshold:
-            one_image_hessian = hessian[:2, :2]
-            hessian_trace = np.trace(one_image_hessian)
-            hessian_determinant = np.linalg.det(one_image_hessian)
-            if hessian_determinant > 0 and (hessian_trace ** 2)/hessian_determinant < ((eigenvalue_ratio_threshold+1)**2)/eigenvalue_ratio_threshold:
-                keypoint = KeyPoint((y+offset[0],x+offset[1]),extremum_strength,current_octave,image_index+1,1/current_octave,SD*((scale_ratio**(1/(len(current_DoG_stack)-2))**image_index)*(scale_ratio**(current_octave-1))))
-                return keypoint, image_index
-        return None
-
-    def computeKeypointOrientations(keypoint, current_octave, image):
-        keypoints_with_orientation = []
-        image_shape = image.shape
-
-
-
-    ### --- defineKeyPointsFromPixelExtrema --- ###
-
     # Vi opretter et array til at holde vores extrema pixels til senere hen https://cdn.discordapp.com/attachments/938032088756674652/1044169017155387511/image.png
 
     keypoints = []
@@ -217,13 +91,134 @@ def defineKeyPointsFromPixelExtrema(DoG_array, octave_index, SD, scale_ratio):
                 # -- i teorien kan lægge imellem pixels, forskudt af alle akser. Det er der noget matematik der siger.
                 # -- Vi skal bare vide at afhængig af de andre pixels værdier i cuben, så er det IKKE sikkert at selve
                 # -- toppunktet vi netop har fundet, ligger indenfor den samme pixel celle.
-                if centerPixelIsExtrema(current_pixel_cube):
-                    print("we get extrema")
+                if centerPixelIsExtrema(current_pixel_cube, image_mid, y,x):
                     result = specifyExtremumLocation(y,x,current_scale_space_DoG_images, DoG_array,octave_index,(scale_space_index+1),SD,scale_ratio)
                     if result is not None:
-                        print("i get some results")
                         keypoint_without_orientation, keypoint_image_index = result
                         keypoints.append(keypoint_without_orientation)
                         #keypoints_with_orientation = computeKeypointOrientations(keypoint_without_orientation,octave_index,current_scale_space_DoG_images[keypoint_image_index])
     return keypoints
 
+
+def centerPixelIsExtrema(pixel_cube,image_mid,y,x):
+    """
+    METODE-DEFINITION: KALDES NEDENUNDER
+    -----
+    Her gemmer vi værdien for center pixelen og så ændrer vi efterfølgende centerpixelens værdi i cuben til 0, så
+    den efterfølgende ikke tælles med i tjekket for om den er et extremum. Så kan vi nemlig bruge .all()
+    """
+    center_pixel = image_mid[y, x].copy()
+    pixel_cube[1, 1, 1] = 0  # set center pixel to 0
+    # Vi tjekker her om center_pixel er større end alle andre pixels
+    # --
+    if (center_pixel > pixel_cube).all() or (center_pixel < pixel_cube).all():
+        return True
+    return False
+
+
+def specifyExtremumLocation(y, x, current_scale_space, current_DoG_stack, current_octave, image_index, SD, scale_ratio, number_of_attempts=5, strenght_threshold=0.03, eigenvalue_ratio_threshold=10):
+    """
+    Metode for at beregne den præcise placering af extremum i en 3x3x3 cube af pixels.
+    """
+
+    ### --- specifyExtremumLocation --- ###
+
+    # Vi pakker billederne ud som vi passerede fra før
+    image_top, image_mid, image_bot = current_scale_space
+
+    # Vi definerer et for-loop, der sætter et max for hvor mange gange, vi vil forsøge at tilnærme os placeringen
+    for attemt in range(number_of_attempts):
+        pixel_cube = np.array([image_top[y - 1:y + 2, x - 1:x + 2],
+                               image_mid[y - 1:y + 2, x - 1:x + 2],
+                               image_bot[y - 1:y + 2, x - 1:x + 2]]).astype('float32') / 255.0
+        # Gradient beregnes. Læs metode for uddybelse.
+        gradient = calculateGradient(pixel_cube)
+        # Hessian beregnes. Læs metode for uddybelse.
+        hessian = calculateHessian(pixel_cube)
+        #
+        offset = -np.linalg.lstsq(hessian, gradient, rcond=None)[0]
+
+        if all(abs(offset) < 0.5):
+            break
+        y += int(round(offset[0]))
+        x += int(round(offset[1]))
+        image_index = int(round(offset[2]))
+        if y < 3 or y > image_mid.shape[0] - 3 or x < 3 or x > image_mid.shape[
+            1] - 3 or image_index < 1 or image_index > len(current_DoG_stack) - 2:
+            # Det beregnede punkt er endten for tæt på kanten, eller uden for billedet, derfor er keypointet her ikke stabilt
+            return None
+        if attemt >= number_of_attempts - 1:
+            return None
+        image_top, image_mid, image_bot = current_DoG_stack[image_index - 1: image_index + 2]
+
+
+    extremum_strength = image_mid[1,1] + (0.5 * np.dot(gradient, offset))
+    if abs(extremum_strength) > strenght_threshold:
+        one_image_hessian = hessian[:2, :2]
+        hessian_trace = np.trace(one_image_hessian)
+        hessian_determinant = np.linalg.det(one_image_hessian)
+        if hessian_determinant > 0 and (hessian_trace ** 2)/hessian_determinant < ((eigenvalue_ratio_threshold+1)**2)/eigenvalue_ratio_threshold:
+            keypoint = KeyPoint((y+offset[0],x+offset[1]),extremum_strength,current_octave,image_index+1,1/current_octave,SD*((scale_ratio**(1/(len(current_DoG_stack)-2)))**image_index)*(scale_ratio**(current_octave-1)))
+            return keypoint, image_index
+    return None
+
+def calculateGradient(pixel_cube):
+    """
+    Den her metode er til for at beregne gradient (retningen for en border i et billede).
+    -----
+    Gradient beregnes ved følgende formel (husk vi skal helst bare forstå hvorfor vi bruger matematikken og ikke
+    nødvendigvis hvordan den virker):
+    f'(x) = (f(x + s) - f(x - s)) / (2 * s)
+    I formlen står x for koordinat og s for step, altså størrelsen af skridtet mellem hver værdi. Da vi her har
+    at gøre med pixels i et grid er s (afstanden mellem hver pixel) lig med 1, så vi kan i stedet skrive:
+    f'(x) = (f(x + 1) - f(x - 1)) / 2.
+    Her tager vi udgangspunkt i centerpixelen. Vi husker at pixel_cube har holder pixel_cube[top,mid,bot], hvor
+    top, mid og bot hver er et 3x3 slice af et billede.
+    """
+
+    # Først regner vi x. Vi vil gerne finde forskellen over x-aksen. Derfor skriver vi 1 i første indgang (altså
+    # -- midterste billede), med 1 i anden indgang (i midten af y aksen). Og så tager vi x=2 og x=0 og trækker
+    # -- fra hinanden. Så
+    dx = (pixel_cube[1, 1, 2] - pixel_cube[1, 1, 0]) / 2
+
+    # Samme for y. Første indgag (top/mid/bot) er 1 igen. Nu er det y ændres mellem 2 og 0, og x er 1 konstant.
+    dy = (pixel_cube[1, 2, 1] - pixel_cube[1, 0, 1]) / 2
+
+    # For den sidste er det forskellen over de tre billeder i laget, så her ændres første indgang mellem 0 og 2.
+    # -- y og x er konstante.
+    ds = (pixel_cube[2, 1, 1] - pixel_cube[0, 1, 1]) / 2
+
+    return np.array([dx, dy, ds])
+
+
+def calculateHessian(pixel_cube):
+    """
+    Hessian regnes ud når vi har fundet et ekstremum. Værdierne i en hessian kan bruges til at se hvor et
+    keypoint ligger henne. Vi er interesserede i at se om det ligger på en linje eller en i et hjørne. Essensen
+    er: Hvis det ligger på en linje er vi rimelig ligeglade med keypointet da det kan være svært at sammenligne
+    om to keypoints ligger det samme sted langs en linje (Dette er tilfældet hvis et keypoint hovedsagligt har
+    en høj værdi i en enkelt retning). Hvis det derimod ligger i et hjørne er det lettere at sammenligne om de
+    to keypoints er placeret tæt på hinanden og om de er ens (Vi ser et keypoint som bedre og mere beskrivende
+    hvis det har høje værdier i flere retninger. Det betyder at det ligger hvor flere linjer krydser/ligger tæt
+    som fx et hjørne eller et knudepunkt. Disse er mere interessante da de er mere karakteristiske end bare
+    punkter langs en linje).
+
+    Hessian bruges i bund og grund til at kigge på om et keypoint er "godt nok" til at kunne bruges senere til
+    at finde ligheder imellem keypoints.
+    """
+    center_pixel_value = pixel_cube[1, 1, 1]
+
+    dxx = pixel_cube[1, 1, 2] - 2 * center_pixel_value + pixel_cube[1, 1, 0]
+    dyy = pixel_cube[1, 2, 1] - 2 * center_pixel_value + pixel_cube[1, 0, 1]
+    dss = pixel_cube[2, 1, 1] - 2 * center_pixel_value + pixel_cube[0, 1, 1]
+
+    dxy = 0.25 * (pixel_cube[1, 2, 2] - pixel_cube[1, 2, 0] - pixel_cube[1, 0, 2] + pixel_cube[1, 0, 0])
+    dxs = 0.25 * (pixel_cube[2, 1, 2] - pixel_cube[2, 1, 0] - pixel_cube[0, 1, 2] + pixel_cube[0, 1, 0])
+    dys = 0.25 * (pixel_cube[2, 2, 1] - pixel_cube[2, 0, 1] - pixel_cube[0, 2, 1] + pixel_cube[0, 0, 1])
+
+    return np.array([[dxx, dxy, dxs], [dxy, dyy, dys], [dxs, dys, dss]])
+
+
+def computeKeypointOrientations(keypoint, current_octave, image):
+    keypoints_with_orientation = []
+    image_shape = image.shape

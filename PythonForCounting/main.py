@@ -289,13 +289,10 @@ def testGuassian():
     SD = 1.6
     for p, image in enumerate(makeImagePyramide(greyscaleInput,scalefactor,150)):
         DoG = SIFT.differenceOfGaussian(image, SD, p+1, scalefactor,5)
-        for i, image in enumerate(DoG):
-            cv.imshow(f'{i}',image)
         keypoints.extend(SIFT.defineKeyPointsFromPixelExtrema(DoG, p+1,SD, scalefactor))
     print(len(keypoints))
     for keypoint in keypoints:
-
-        print(keypoint.size_radius)
+        print(f'O: {keypoint.octave}, S: {keypoint.size_radius}')
 
 
 
