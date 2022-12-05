@@ -46,10 +46,12 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+    buildToolsVersion '30.0.3'
 }
 
 dependencies {
 
+    implementation 'com.quickbirdstudios:opencv-contrib:4.5.3.0'
     implementation 'com.karumi:dexter:6.2.3'
     implementation 'com.github.yalantis:ucrop:2.2.6'
     implementation 'androidx.appcompat:appcompat:1.5.1'

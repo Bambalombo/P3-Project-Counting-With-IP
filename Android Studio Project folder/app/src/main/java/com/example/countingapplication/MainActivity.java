@@ -4,8 +4,11 @@ package com.example.countingapplication;
 import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -28,7 +31,15 @@ import com.karumi.dexter.listener.PermissionGrantedResponse;
 import com.karumi.dexter.listener.PermissionRequest;
 import com.karumi.dexter.listener.single.PermissionListener;
 
+import org.opencv.android.OpenCVLoader;
+import org.opencv.core.Mat;
+import org.opencv.android.Utils;
+import org.opencv.imgproc.Imgproc;
+import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.osgi.OpenCVInterface;
 import org.w3c.dom.Text;
+
+import java.io.IOException;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -36,6 +47,7 @@ public class MainActivity extends AppCompatActivity {
     ActivityResultLauncher<String> cropImage;
     Uri slice;
     Uri inputImage;
+    ImageView imageView;
     TextView sliceTxt;
     TextView inputImageTxt;
 
@@ -43,9 +55,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        if (!Python.isStarted()){
-            Python.start(new AndroidPlatform(this));
-        }
+        OpenCVLoader.initDebug();
+
+        imageView = (ImageView) findViewById(R.id.inputImageView);
 
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
@@ -93,15 +105,13 @@ public class MainActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
         if(requestCode == 100 && resultCode == 101){
             String result = data.getStringExtra("CROP");
-            inputImage = data.getData();
+            Bitmap bm = (Bitmap) data.getExtras().get("data");
             if (result!=null){
                 slice = Uri.parse(result);
             }
-            Python py = Python.getInstance();
-            final PyObject pyobj = py.getModule("fastOpenCVVersion");
-            pyobj.callAttr("makeGrayscale", inputImage);
+            imageView.setImageBitmap(bm);
             binding.sliceView.setImageURI(slice);
-            binding.inputImageView.setImageURI(CropperActivity.inputImage);
+            //binding.inputImageView.setImageURI(CropperActivity.inputImage);
             sliceTxt.setText("Find amount of this object:");
             inputImageTxt.setText("In this image:");
         }
