@@ -5,8 +5,13 @@ import numpy as np
 from . import bordering as bd
 
 
-def makeGaussianKernel(SD):
+def makeGaussianKernel(SD, image):
     kernelsize = int(math.ceil(6 * SD)) // 2 * 2 + 1
+    if kernelsize > image.shape[0] or kernelsize > image.shape[1]:
+        kernelsize = min(image.shape) - 1
+        if kernelsize % 2 == 0:
+            kernelsize -= 1
+
     radius = int((kernelsize - 1) / 2)  # kernel radius
     gaussian = [1 / (math.sqrt(2 * math.pi) * SD) * math.exp(-0.5 * (x / SD) ** 2) for x in range(-radius, radius + 1)]
     gaussianKernel = np.zeros((kernelsize, kernelsize))
@@ -40,32 +45,32 @@ def convolve(image, kernel):
         return output
 
 
-def differenceOfGaussian(image, SD, octave, scale_ratio, numberOfDoGs=5):
-    gaussianKernel = makeGaussianKernel(SD * octave)
-    borderimage = bd.addborder_reflect(image, gaussianKernel.shape[0])
+def differenceOfGaussian(image, SD, scale_ratio, numberOfDoGs=5):
+    # gaussianKernel = makeGaussianKernel(SD, image)
+    # borderimage = bd.addborder_reflect(image, gaussianKernel.shape[0])
     # blurredPictures = [convolve(borderimage, gaussianKernel)]
-    blurredPictures = [cv.GaussianBlur(image, (0, 0), sigmaX=SD * octave, sigmaY=SD * octave)]
-    k = (octave * scale_ratio) ** (1. / (numberOfDoGs - 2))
+    blurredPictures = [cv.GaussianBlur(image, (0, 0), sigmaX=SD, sigmaY=SD)]
+    k = scale_ratio ** (1. / (numberOfDoGs - 2))
     for i in range(1, numberOfDoGs + 1):
-        guassiankernel = makeGaussianKernel(SD * (k ** i))
+        # guassiankernel = makeGaussianKernel(SD * (k ** i), image)
         # blurredPictures.append(convolve(borderimage, gaussianKernel))
-        blurredPictures.append(cv.GaussianBlur(image, (0, 0), sigmaX=(SD * (k ** i)), sigmaY=(SD * (k ** i))))
+        blurred_image = cv.GaussianBlur(image, (0, 0), sigmaX=(SD * (k ** i)), sigmaY=(SD * (k ** i)))
+        blurredPictures.append(blurred_image)
 
     DoG = []
     for (bottomPicture, topPicture) in zip(blurredPictures, blurredPictures[1:]):
         DoG.append(cv.subtract(topPicture, bottomPicture))
 
-    return DoG
+    return blurredPictures, DoG
 
 
-def defineKeyPointsFromPixelExtrema(DoG_array, octave_index, SD, scale_ratio):
+def defineKeyPointsFromPixelExtrema(gaussian_images, DoG_array, octave_index, SD, scale_ratio):
     """
     Vi vil finde ekstrema (vores keypoints). Processen overordnet:
     - Hvert scalespace består af 3 DoG billeder.
     - Vi looper igennem alle pixels og laver en 3x3x3 cube fra midterste billedes pixels.
     - For hver cube finder vi ud af om den midterste pixel er et extremum (minimum eller maximum værdien i cuben).
     """
-
     # Vi opretter et array til at holde vores extrema pixels til senere hen https://cdn.discordapp.com/attachments/938032088756674652/1044169017155387511/image.png
 
     keypoints = []
@@ -93,22 +98,47 @@ def defineKeyPointsFromPixelExtrema(DoG_array, octave_index, SD, scale_ratio):
                 # -- Vi skal bare vide at afhængig af de andre pixels værdier i cuben, så er det IKKE sikkert at selve
                 # -- toppunktet vi netop har fundet, ligger indenfor den samme pixel celle.
                 if centerPixelIsExtrema(current_pixel_cube, image_mid, y, x):
-
                     result = specifyExtremumLocation(y, x, current_scale_space_DoG_images, DoG_array, octave_index,
                                                      (scale_space_index + 1), SD, scale_ratio)
                     if result is not None:
                         keypoint_without_orientation, keypoint_image_index = result
                         keypoints_with_orientation = computeKeypointOrientations(keypoint_without_orientation,
                                                                                  octave_index,
-                                                                                 DoG_array[keypoint_image_index])
+                                                                                 gaussian_images[keypoint_image_index])
+
+                        # Før vi tilføjer keypointsne til vores samlede keypoint array vil vi lige være sikre på at de
+                        # -- ikke allerede findes i arrayet. Dette kan være tilfældet hvis de allerede er fundet i en
+                        # -- anden oktav.
                         keypoints.extend(keypoints_with_orientation)
     return keypoints
 
 
+def checkForDuplicateKeypoints(new_keypoints, keypoints_array):
+    """
+
+    """
+    # For hvert keypoints i vores nye keypoints array
+    for new_keypoint in new_keypoints:
+        for existing_keypoint in keypoints_array:
+            # Vi tjekker om keypointet allerede eksiterer
+            if new_keypoint.coordinates[0] == existing_keypoint.coordinates[0] and \
+                    new_keypoint.coordinates[1] == existing_keypoint.coordinates[1] and \
+                    new_keypoint.size_sigma == existing_keypoint.size_sigma and \
+                    new_keypoint.strength == existing_keypoint.strength and \
+                    new_keypoint.orientation == existing_keypoint.orientation:  # and \
+                # new_keypoint.octave != existing_keypoint.octave and \
+                # new_keypoint.scale_space != existing_keypoint.scale_space:
+
+                # Hvis det allerede eksiterer så fjerner vi det fra det nye array
+                new_keypoints.remove(new_keypoint)
+                print(f'\t\t(REMOVED DUPLICATE KEYPOINT)')
+
+    # Til sidst returnerer vi det sorterede array
+    return new_keypoints
+
+
 def centerPixelIsExtrema(pixel_cube, image_mid, y, x):
     """
-    METODE-DEFINITION: KALDES NEDENUNDER
-    -----
     Her gemmer vi værdien for center pixelen og så ændrer vi efterfølgende centerpixelens værdi i cuben til 0, så
     den efterfølgende ikke tælles med i tjekket for om den er et extremum. Så kan vi nemlig bruge .all()
     """
@@ -126,7 +156,6 @@ def specifyExtremumLocation(y, x, current_scale_space, current_DoG_stack, curren
     """
     Metode for at beregne den præcise placering af extremum i en 3x3x3 cube af pixels.
     """
-
     ### --- specifyExtremumLocation --- ###
 
     # Vi pakker billederne ud som vi passerede fra før
@@ -143,7 +172,6 @@ def specifyExtremumLocation(y, x, current_scale_space, current_DoG_stack, curren
         hessian = calculateHessian(pixel_cube)
         #
         offset = -np.linalg.lstsq(hessian, gradient, rcond=None)[0]
-
         if all(abs(offset) < 0.5):
             break
         y += int(round(offset[0]))
@@ -151,23 +179,25 @@ def specifyExtremumLocation(y, x, current_scale_space, current_DoG_stack, curren
         image_index = int(round(offset[2]))
         if y < 3 or y > image_mid.shape[0] - 3 or x < 3 or x > image_mid.shape[
             1] - 3 or image_index < 1 or image_index > len(current_DoG_stack) - 2:
-            # Det beregnede punkt er endten for tæt på kanten, eller uden for billedet, derfor er keypointet her ikke stabilt
+            # Det beregnede punkt er enten for tæt på kanten eller uden for billedet, derfor er keypointet her ikke stabilt
             return None
         if attemt >= number_of_attempts - 1:
             return None
         image_top, image_mid, image_bot = current_DoG_stack[image_index - 1: image_index + 2]
 
-    extremum_strength = image_mid[1, 1] + (0.5 * np.dot(gradient, offset))
+    extremum_strength = pixel_cube[1, 1, 1] + (0.5 * np.dot(gradient, offset))
     if abs(extremum_strength) >= strenght_threshold:
         one_image_hessian = hessian[:2, :2]
         hessian_trace = np.trace(one_image_hessian)
         hessian_determinant = np.linalg.det(one_image_hessian)
         if hessian_determinant > 0 and (hessian_trace ** 2) / hessian_determinant < (
                 (eigenvalue_ratio_threshold + 1) ** 2) / eigenvalue_ratio_threshold:
-            keypoint = KeyPoint((y + offset[0], x + offset[1]), abs(extremum_strength), current_octave, image_index + 1,
-                                1 / current_octave,
+            keypoint = KeyPoint(((y + offset[0]) * (scale_ratio ** current_octave),
+                                 (x + offset[1]) * (scale_ratio ** current_octave)),
+                                abs(extremum_strength), current_octave,
+                                image_index, 1 / (scale_ratio ** current_octave),
                                 SD * ((scale_ratio ** (1 / (len(current_DoG_stack) - 2))) ** image_index) * (
-                                        scale_ratio ** (current_octave - 1)))
+                                            scale_ratio ** (current_octave - 1)))
             return keypoint, image_index
     return None
 
@@ -245,7 +275,8 @@ def computeKeypointOrientations(keypoint, current_octave, image, SD_scale_factor
     # Vi opretter et array til at holde vores keypoints efter vi har beregnet deres orientation
     keypoints_with_orientation = []
 
-    y_coord, x_coord = int(round(keypoint.coordinates[0])), int(round(keypoint.coordinates[1]))
+    y_coord, x_coord = int(round(keypoint.coordinates[0] * keypoint.image_scale)), int(
+        round(keypoint.coordinates[1] * keypoint.image_scale))
 
     new_SD = keypoint.size_sigma * SD_scale_factor
     radius = int(round(new_SD * times_SD_covered_by_radius))
@@ -354,7 +385,7 @@ def computeKeypointOrientations(keypoint, current_octave, image, SD_scale_factor
             # Ud fra nabo-værdierne kan vi vha formlen for kvadratisk interpolation:
             # -- (https://ccrma.stanford.edu/~jos/sasp/Quadratic_Interpolation_Spectral_Peaks.html)
             subbin_peak_index = (peak_index + (0.5 * ((left_peak_value - right_peak_value) / left_peak_value -
-                                (2 * orientation_peak) + right_peak_value))) % num_bins
+                                                      (2 * orientation_peak) + right_peak_value))) % num_bins
 
             # Ved at kende sub-bin indekset kan vi nu omregne dette til grader.
             keypoint_orientation = 360 - (subbin_peak_index * (360 / num_bins))
@@ -366,3 +397,82 @@ def computeKeypointOrientations(keypoint, current_octave, image, SD_scale_factor
             keypoints_with_orientation.append(keypoint_with_orientation)
 
     return keypoints_with_orientation
+
+
+def makeKeypointDescriptors(keypoints, Gaussian_images, num_bins=8, num_windows=4):
+    """
+
+    """
+    # Vi vil gerne finde hver pixel og rotere hver pixel modsat hovedrotationen for keypointet. På den måde udligner vi
+    # -- for rotationen på keypointet før vi beregner dets desciptor. Det gør at når vi senere skal sammenligne alle
+    # -- vores keypoints, så er de rotation invariant, og vi kan derfor sammenligne dem uden at vi risikerer at de ikke
+    # -- matcher grundet et roteret objekt.
+
+    # Vi sætter en distance for hvor langt rundt omkring vores keypoint vi vil tjekke for features der skal indgå i
+    # -- vores descriptor. Her definerer vi distancen som værende 6 gange sigma. Hvis vi har en gaussian fordeling og
+    # -- man tager en bredde på 3 gange sigma så har man dækket noget ala 97% eller 99% af hele fordelingen. Det gør vi
+    # -- vi til hver side.
+    keypoints_with_descriptors = []
+
+    for keypoint in keypoints:
+        descriptor_histogram = np.zeros((num_windows, num_windows, num_bins))
+        sigma_dist = int(3 * keypoint.size_sigma)
+        rotation_angle = 360.0 - keypoint.orientation
+
+        #
+        cos_angle = np.cos(np.deg2rad(rotation_angle))
+        sin_angle = np.sin(np.deg2rad(rotation_angle))
+
+        if (keypoint.coordinates[0] * np.sqrt(2 * sigma_dist) > Gaussian_images[keypoint.scale_space].shape[0]) or \
+                (keypoint.coordinates[1] * np.sqrt(2 * sigma_dist) > Gaussian_images[keypoint.scale_space].shape[1]):
+            continue
+        # Vi laver et loop over hver i et areal ud for vores keypoint center.
+        for y in range(-sigma_dist, sigma_dist + 1):
+            for x in range(-sigma_dist, sigma_dist + 1):
+                # Det næste vi skal til er at beregne hvor meget af den gradient vi finder midt i vores grid, der skal
+                # -- lægges i hvert af de omkringliggende bins. Til det gør vi brug af noget matematik der hedder
+                # -- trilinear interpolation. Det går ud på at man for et punkt der ligger midt i et kvadrat, finder ud
+                # -- af hvor tæt på, den ligger på hvert af hjørnepunkterne, og derigennem finder ud af hvor meget af
+                # -- dens værdi der skal puttes i hvert af punkterne. Jo tættere på et punkt, jo mere bidrager punktets
+                # -- værdi til hvert hjørne. I vores tilfælde er hvert hjørne en bin et histogram, der hvert indeholder
+                # -- 8 bins.
+
+                # Vi lægger et grid med en længde og bredde lig med 2 gange sigma_dist ind over vores keypoint. Det gør
+                # -- vi for at dække over et område, der ændrer sig alt efter hvor stort et keypoint vi har med at gøre.
+                # -- Vi vil gerne ende med et koordinatsystem der går fra 0 til 4. Vi starter med at lægge sigma_dist
+                # -- til både x og y værdierne for at de forskydes op så laveste x (x = -sigma_dist) bliver til x = 0.
+                # -- Og fordi vi kigger på centrum af hver tile i vores grid, og de lige nu ligger i midten af hvert til
+                # -- skal vi forskyde det med 1/4 sigma_dist, da det svarer til en halv tile-længde.
+                x_pos = x + sigma_dist - (1/4 * sigma_dist)
+                y_pos = y + sigma_dist - (1/4 * sigma_dist)
+
+                # Lige nu har vi at der loopes over 0 til 2*sigma_dist. For at få det til at blive mellem 0 og 4, så
+                # -- normaliserer vi med 0,5 * sigma dist for at få det mellem 0 og 4. (At dele med sigma_dist gør så
+                # -- det bliver mellem 0 og 2, og ved så at dele med 0,5 også svarer det til at gange med 2.
+                x_pos /= 0.5
+                y_pos /= 0.5
+
+                # for at finde ud af hvilken bin som vores nuværende x- og y-koordinat ligger tættest på, kan vi finde
+                # -- den tilsvarende mindste x-
+                min_bin_x = np.floor(x_pos)
+                max_bin_x = np.ceil(x_pos)
+                min_bin_y = np.floor(y_pos)
+                max_bin_y = np.ceil(y_pos)
+
+                UL_weight = (1 - (x_pos - min_bin_x)) * (1 - (y_pos - min_bin_y))
+                UR_weight = (1 - (max_bin_x - x_pos)) * (1 - (y_pos - min_bin_y))
+                LL_weight = (1 - (x_pos - min_bin_x)) * (1 - (max_bin_y - y_pos))
+                LR_weight = (1 - (max_bin_x - x_pos)) * (1 - (max_bin_y - y_pos))
+
+                # Nu skal der ganges vores yndlingsmatrix med en vektor 😎          | cos -sin |     | y |
+                # -- Vi har rotationsmatricen ganget med en vektor [y,x],           | sin  cos |  *  | x |
+                # -- hvor [y,x] svarer til vores nuværende koordinater i billedet. Ud fra den beregning kan vi finde
+                # -- den nye værdi for y, y_rotated og den nye værdi for x, x_rotated. Det kan vi da resultatet af
+                # -- rotationen giver en ny vektor [y_rotated, x_rotated] svarende til de nye beregnede værdier.
+                y_rotated = y * cos_angle - x * sin_angle
+                x_rotated = y * sin_angle + x * cos_angle
+
+
+
+
+    return keypoints_with_descriptors

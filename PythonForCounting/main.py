@@ -291,19 +291,40 @@ def testGuassian():
     keypoints = []
     scalefactor = 2
     SD = 1.6
-    for p, image in enumerate(makeImagePyramide(greyscaleInputAsFloat32,scalefactor,30)):
-        print('Creating DoG array ...')
-        DoG = SIFT.differenceOfGaussian(image, SD, p+1, scalefactor,5)
-        print('Calculating keypoints ...')
-        found_keypoints = SIFT.defineKeyPointsFromPixelExtrema(DoG, p+1,SD, scalefactor)
-        keypoints.extend(found_keypoints)
-        print(f'\t - keypoints found in octave {p+1}: {len(found_keypoints)}')
+    for p, image in enumerate(makeImagePyramide(greyscaleInputAsFloat32,scalefactor,20)):
 
-    print(f'keypoints in total: {keypoints}')
+        print('Creating DoG array ...')
+        Gaussian_images, DoG = SIFT.differenceOfGaussian(image, SD, scalefactor,5)
+
+        print('Calculating keypoints ...')
+        found_keypoints = SIFT.defineKeyPointsFromPixelExtrema(Gaussian_images,DoG, p,SD, scalefactor)
+
+        print('Checking for duplicate keypoints ...')
+        sorted_keypoints = SIFT.checkForDuplicateKeypoints(found_keypoints,keypoints)
+
+        keypoints_with_descriptors = SIFT.makeKeypointDescriptors(sorted_keypoints,Gaussian_images)
+
+        keypoints.extend(keypoints_with_descriptors)
+        print(f'\t - keypoints found in octave {p} : {len(found_keypoints)}')
+
+
     print(f'Drawing keypoints ...')
     for keypoint in keypoints:
-        cv.circle(inputPicture, (int(round(keypoint.coordinates[1]/keypoint.image_scale)),int(round(keypoint.coordinates[0]/keypoint.image_scale))), 2, color=(0, 0, 255),thickness=-1)
+        # print(keypoint)
+        cv.circle(inputPicture, (int(round(keypoint.coordinates[1])),int(round(keypoint.coordinates[0]))), 2, color=(0, 0, 255),thickness=-1)
+    print(f'   Our SIFT keypoints found: {len(keypoints)}')
     cv.imshow('keypoints', inputPicture)
+
+def testSift():
+    input_picture = cv.imread('Images/candlelightsOnVaryingBackground.jpg')
+    input_picture = cv.resize(input_picture,(0,0),fx=0.5,fy=0.5)
+    greyscaleInput = makeGrayscale(input_picture.copy())
+    sift = cv.SIFT_create()
+    keypoints = sift.detect(greyscaleInput, None)
+    print(f':OpenCV SIFT keypoints found: {len(keypoints)}')
+
+    img = cv.drawKeypoints(greyscaleInput, keypoints, input_picture)
+    cv.imshow('sift',img)
 
 
 def testMaxima():
@@ -316,8 +337,9 @@ def testMaxima():
     img_array.append(img2)
     img_array.append(img3)
 
-    keypoints = SIFT.defineKeyPointsFromPixelExtrema(img_array)
-    print(keypoints.size)
+    img4 = np.array([1,2])
+
+    print(img_array)
 
 if __name__ == "__main__":
     print(f'Starting timer:')
@@ -325,6 +347,7 @@ if __name__ == "__main__":
     #main()
     testGuassian()
     #testMaxima()
+    testSift()
     print(f'Timer ended: Total time = {time.time() - startTime} s')
     cv.waitKey(0)
     cv.destroyAllWindows()
