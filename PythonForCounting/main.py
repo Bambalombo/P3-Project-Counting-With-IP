@@ -299,13 +299,16 @@ def testGuassian():
         print('Calculating keypoints ...')
         found_keypoints = SIFT.defineKeyPointsFromPixelExtrema(Gaussian_images,DoG, p,SD, scalefactor)
 
+        print(f'Creating feature descriptors ...')
         print('Checking for duplicate keypoints ...')
+
+        print(f'\t - keypoints found in octave {p} : {len(found_keypoints)}')
         sorted_keypoints = SIFT.checkForDuplicateKeypoints(found_keypoints,keypoints)
+        print(f'\t - new keypoints found in octave {p} : {len(sorted_keypoints)}')
 
         keypoints_with_descriptors = SIFT.makeKeypointDescriptors(sorted_keypoints,Gaussian_images)
 
         keypoints.extend(keypoints_with_descriptors)
-        print(f'\t - keypoints found in octave {p} : {len(found_keypoints)}')
 
 
     print(f'Drawing keypoints ...')
@@ -346,8 +349,9 @@ if __name__ == "__main__":
     startTime = time.time()
     #main()
     testGuassian()
+
     #testMaxima()
-    testSift()
+    #testSift()
     print(f'Timer ended: Total time = {time.time() - startTime} s')
     cv.waitKey(0)
     cv.destroyAllWindows()

@@ -415,20 +415,27 @@ def makeKeypointDescriptors(keypoints, Gaussian_images, num_bins=8, num_windows=
     keypoints_with_descriptors = []
 
     for keypoint in keypoints:
+        # Til at holde vores gradients opretter vi et 3d array. De første to pladser svarer til indicerne på vores 16
+        # -- pladser i vores array.
         descriptor_histogram = np.zeros((num_windows, num_windows, num_bins))
-        sigma_dist = int(3 * keypoint.size_sigma)
+        sigma_dist = int(6 * keypoint.size_sigma)
         rotation_angle = 360.0 - keypoint.orientation
+        weight_factor = -0.5/(keypoint.size_sigma**2)
 
+        degrees_pr_bin = 360/num_bins
         #
         cos_angle = np.cos(np.deg2rad(rotation_angle))
         sin_angle = np.sin(np.deg2rad(rotation_angle))
 
         if (keypoint.coordinates[0] * np.sqrt(2 * sigma_dist) > Gaussian_images[keypoint.scale_space].shape[0]) or \
                 (keypoint.coordinates[1] * np.sqrt(2 * sigma_dist) > Gaussian_images[keypoint.scale_space].shape[1]):
+            print('KEYPOINT TOO BIG FOR IMAGE')
             continue
         # Vi laver et loop over hver i et areal ud for vores keypoint center.
         for y in range(-sigma_dist, sigma_dist + 1):
             for x in range(-sigma_dist, sigma_dist + 1):
+                ### AT FORDELE GRADIENT BLANDT DE FIRE NÆRMESTE BINS
+
                 # Det næste vi skal til er at beregne hvor meget af den gradient vi finder midt i vores grid, der skal
                 # -- lægges i hvert af de omkringliggende bins. Til det gør vi brug af noget matematik der hedder
                 # -- trilinear interpolation. Det går ud på at man for et punkt der ligger midt i et kvadrat, finder ud
@@ -436,43 +443,103 @@ def makeKeypointDescriptors(keypoints, Gaussian_images, num_bins=8, num_windows=
                 # -- dens værdi der skal puttes i hvert af punkterne. Jo tættere på et punkt, jo mere bidrager punktets
                 # -- værdi til hvert hjørne. I vores tilfælde er hvert hjørne en bin et histogram, der hvert indeholder
                 # -- 8 bins.
-
                 # Vi lægger et grid med en længde og bredde lig med 2 gange sigma_dist ind over vores keypoint. Det gør
                 # -- vi for at dække over et område, der ændrer sig alt efter hvor stort et keypoint vi har med at gøre.
                 # -- Vi vil gerne ende med et koordinatsystem der går fra 0 til 4. Vi starter med at lægge sigma_dist
                 # -- til både x og y værdierne for at de forskydes op så laveste x (x = -sigma_dist) bliver til x = 0.
                 # -- Og fordi vi kigger på centrum af hver tile i vores grid, og de lige nu ligger i midten af hvert til
                 # -- skal vi forskyde det med 1/4 sigma_dist, da det svarer til en halv tile-længde.
-                x_pos = x + sigma_dist - (1/4 * sigma_dist)
-                y_pos = y + sigma_dist - (1/4 * sigma_dist)
+                x_pos = x + sigma_dist - ((1/4) * sigma_dist)
+                y_pos = y + sigma_dist - ((1/4) * sigma_dist)
 
                 # Lige nu har vi at der loopes over 0 til 2*sigma_dist. For at få det til at blive mellem 0 og 4, så
                 # -- normaliserer vi med 0,5 * sigma dist for at få det mellem 0 og 4. (At dele med sigma_dist gør så
                 # -- det bliver mellem 0 og 2, og ved så at dele med 0,5 også svarer det til at gange med 2.
-                x_pos /= 0.5
-                y_pos /= 0.5
+                x_pos /= (0.5 * sigma_dist)
+                y_pos /= (0.5 * sigma_dist)
 
-                # for at finde ud af hvilken bin som vores nuværende x- og y-koordinat ligger tættest på, kan vi finde
-                # -- den tilsvarende mindste x-
-                min_bin_x = np.floor(x_pos)
-                max_bin_x = np.ceil(x_pos)
-                min_bin_y = np.floor(y_pos)
-                max_bin_y = np.ceil(y_pos)
+                # For at finde ud af hvilken bin som vores nuværende x- og y-koordinat ligger tættest på, kan vi finde
+                # -- den mindste x-koordinat ved at runde vores x-position ned til nærmeste heltal. For at finde største
+                # -- x koordinat runder vi op til nærmeste heltal. Dette gøres for både x og y.
+                min_bin_y = int(np.floor(y_pos))
+                min_bin_x = int(np.floor(x_pos))
+                max_bin_y = int(np.ceil(y_pos))
+                max_bin_x = int(np.ceil(x_pos))
 
                 UL_weight = (1 - (x_pos - min_bin_x)) * (1 - (y_pos - min_bin_y))
                 UR_weight = (1 - (max_bin_x - x_pos)) * (1 - (y_pos - min_bin_y))
                 LL_weight = (1 - (x_pos - min_bin_x)) * (1 - (max_bin_y - y_pos))
                 LR_weight = (1 - (max_bin_x - x_pos)) * (1 - (max_bin_y - y_pos))
 
-                # Nu skal der ganges vores yndlingsmatrix med en vektor 😎          | cos -sin |     | y |
+                ### AT ROTERE VORES GRID SÅ VI KIGGER PÅ DE RIGTIGE PIXELS I FORHOLD TIL VORES KEYPOINTS HOVEDROTATION
+
+                # Nu ved vi hvilke y,x bins vores gradient skal placeres i. Nu mangler vi bare at finde ud af hvilke
+                # -- bins de skal ende i. Så..!
+                # ..nu skal der ganges vores yndlingsmatrix med en vektor 😎        | cos -sin |     | y |
                 # -- Vi har rotationsmatricen ganget med en vektor [y,x],           | sin  cos |  *  | x |
                 # -- hvor [y,x] svarer til vores nuværende koordinater i billedet. Ud fra den beregning kan vi finde
                 # -- den nye værdi for y, y_rotated og den nye værdi for x, x_rotated. Det kan vi da resultatet af
                 # -- rotationen giver en ny vektor [y_rotated, x_rotated] svarende til de nye beregnede værdier.
-                y_rotated = y * cos_angle - x * sin_angle
-                x_rotated = y * sin_angle + x * cos_angle
+                y_rotated = int(round(y * cos_angle - x * sin_angle))
+                x_rotated = int(round(y * sin_angle + x * cos_angle))
 
+                # Nu har vi pixel-koordinaterne for der, hvor vores x og y værdi for vores roterede keypoint ligger. For
+                # -- at finde beregne gradient og magnitude i den rigtige pixel, skal vi ind og have fat i den pxeil i
+                # -- det nuværende billede. Det gør vi ved at kigge ind i billedet på vores x_rotated og y_rotated index
+                current_image = Gaussian_images[keypoint.scale_space]
 
+                # Til at beskrive vores keypoint via dets 16 histogrammer, så vægter vi de histogrammer der ligger tæt
+                # -- på centrum af vores keypoint højere. Derfor beregner vi en Gaussian vægt-fordeling, der gør, at jo
+                # -- længere pixelen ligger fra keypoint centrum, jo mindre bidrager dens værdier til dets histogram.
+                pixel_weight = np.exp(weight_factor*(y**2 + x**2))
 
+                # Vores nuværende pixel finder vi på det nuværende billede. Vores keypoint centrum har de koordinater
+                # -- som vi har gemt i keypoint.coordinates. Og det er ud fra det centrum vi har beregnet vores roterede
+                # -- x og y koordinater. Så vores position i billedet svarer til vores keypoint koordinater lagt sammen
+                # -- med vores koordinatpar for y roteret og x roteret. Den pixel gemmer vi i en variabel current pixel.
+                distance_x = current_image[int(y_rotated + keypoint.coordinates[0]), int((x_rotated + keypoint.coordinates[1]) + 1)] - current_image[int(y_rotated + keypoint.coordinates[0]), int((x_rotated + keypoint.coordinates[1]) - 1)]
+                distance_y = current_image[int((y_rotated + keypoint.coordinates[0]) - 1), int(x_rotated + keypoint.coordinates[1])] - current_image[int((y_rotated + keypoint.coordinates[0]) + 1), int(x_rotated + keypoint.coordinates[1])]
+                gradient_mag = np.sqrt(distance_x**2 + distance_y**2)
+                gradient_ori = (np.rad2deg(np.arctan2(distance_y,distance_x))-rotation_angle) % 360
+                pixel_contribution = gradient_mag * pixel_weight
+
+                # Nu har vi de to vinkel-bins som vores vinkel ligger imellem. Nu skal vi finde ud af hvor tæt den er
+                min_bin_index = int(np.floor(gradient_ori/degrees_pr_bin)) % num_bins
+                max_bin_index = int(np.ceil(gradient_ori/degrees_pr_bin)) % num_bins
+
+                # Her har vi hvor meget den contributor til hver
+                min_bin_angle_contribution = 1-((gradient_ori/degrees_pr_bin) - min_bin_index)
+
+                if min_bin_y >= 0 and min_bin_x >= 0:
+                    descriptor_histogram[min_bin_y, min_bin_x, min_bin_index] = pixel_contribution * UL_weight * min_bin_angle_contribution
+                if min_bin_y >= 0 and max_bin_x <= 3:
+                    descriptor_histogram[min_bin_y, max_bin_x, min_bin_index] = pixel_contribution * UR_weight * min_bin_angle_contribution
+                if max_bin_y <= 3 and min_bin_x >= 0:
+                    descriptor_histogram[max_bin_y, min_bin_x, min_bin_index] = pixel_contribution * LL_weight * min_bin_angle_contribution
+                if max_bin_y <= 3 and max_bin_x <= 3:
+                    descriptor_histogram[max_bin_y, max_bin_x, min_bin_index] = pixel_contribution * LR_weight * min_bin_angle_contribution
+
+                if min_bin_index != max_bin_index:
+                    max_bin_angle_contribution = 1-(max_bin_index - (gradient_ori/degrees_pr_bin))
+
+                    if min_bin_y >= 0 and min_bin_x >= 0:
+                        descriptor_histogram[min_bin_y, min_bin_x, max_bin_index] = pixel_contribution * UL_weight * max_bin_angle_contribution
+                    if min_bin_y >= 0 and max_bin_x <= 3:
+                        descriptor_histogram[min_bin_y, max_bin_x, max_bin_index] = pixel_contribution * UR_weight * max_bin_angle_contribution
+                    if max_bin_y <= 3 and min_bin_x >= 0:
+                        descriptor_histogram[max_bin_y, min_bin_x, max_bin_index] = pixel_contribution * LL_weight * max_bin_angle_contribution
+                    if max_bin_y <= 3 and max_bin_x <= 3:
+                        descriptor_histogram[max_bin_y, max_bin_x, max_bin_index] = pixel_contribution * LR_weight * max_bin_angle_contribution
+
+        descriptor_vector = []
+
+        for row in descriptor_histogram:
+            for hist in row:
+                descriptor_vector.extend(hist)
+
+        print(len(descriptor_vector))
+        print(descriptor_vector)
+
+        break
 
     return keypoints_with_descriptors
