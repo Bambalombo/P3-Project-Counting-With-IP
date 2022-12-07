@@ -197,7 +197,7 @@ def specifyExtremumLocation(y, x, current_scale_space, current_DoG_stack, curren
                                 abs(extremum_strength), current_octave,
                                 image_index, 1 / (scale_ratio ** current_octave),
                                 SD * ((scale_ratio ** (1 / (len(current_DoG_stack) - 2))) ** image_index) * (
-                                            scale_ratio ** (current_octave - 1)))
+                                            scale_ratio ** (current_octave)))
             return keypoint, image_index
     return None
 
@@ -399,7 +399,7 @@ def computeKeypointOrientations(keypoint, current_octave, image, SD_scale_factor
     return keypoints_with_orientation
 
 
-def makeKeypointDescriptors(keypoints, Gaussian_images, num_bins=8, num_windows=4):
+def makeKeypointDescriptors(keypoints, Gaussian_images, num_bins=8, num_windows=4, magnitude_threshold = 0.2):
     """
 
     """
@@ -413,23 +413,32 @@ def makeKeypointDescriptors(keypoints, Gaussian_images, num_bins=8, num_windows=
     # -- man tager en bredde på 3 gange sigma så har man dækket noget ala 97% eller 99% af hele fordelingen. Det gør vi
     # -- vi til hver side.
     keypoints_with_descriptors = []
+    keypoints_outside_image = 0
+
+    if len(keypoints) != 0:
+        print(f'image: {Gaussian_images[1].shape}, sigma: {keypoints[0].size_sigma}, radius: {np.sqrt(2 * (int(keypoints[0].size_sigma*2)**2))}')
 
     for keypoint in keypoints:
         # Til at holde vores gradients opretter vi et 3d array. De første to pladser svarer til indicerne på vores 16
         # -- pladser i vores array.
         descriptor_histogram = np.zeros((num_windows, num_windows, num_bins))
-        sigma_dist = int(6 * keypoint.size_sigma)
+        sigma_dist = int(2 * keypoint.size_sigma)
         rotation_angle = 360.0 - keypoint.orientation
-        weight_factor = -0.5/(keypoint.size_sigma**2)
+        weight_factor = -0.5/(sigma_dist**2)
 
         degrees_pr_bin = 360/num_bins
-        #
         cos_angle = np.cos(np.deg2rad(rotation_angle))
         sin_angle = np.sin(np.deg2rad(rotation_angle))
 
-        if (keypoint.coordinates[0] * np.sqrt(2 * sigma_dist) > Gaussian_images[keypoint.scale_space].shape[0]) or \
-                (keypoint.coordinates[1] * np.sqrt(2 * sigma_dist) > Gaussian_images[keypoint.scale_space].shape[1]):
-            print('KEYPOINT TOO BIG FOR IMAGE')
+        keypoint_y = keypoint.coordinates[0] * keypoint.image_scale
+        keypoint_x = keypoint.coordinates[1] * keypoint.image_scale
+
+        if keypoint_y + np.sqrt(2*(sigma_dist**2)) > Gaussian_images[keypoint.scale_space].shape[0]-1 or \
+                keypoint_y - np.sqrt(2 * (sigma_dist**2)) < 1 or \
+                keypoint_x - np.sqrt(2 * (sigma_dist**2)) < 1 or \
+                keypoint_x + np.sqrt(2 * (sigma_dist**2)) > Gaussian_images[keypoint.scale_space].shape[1]-1:
+            #print('Keypoint to close to image border')
+            keypoints_outside_image += 1
             continue
         # Vi laver et loop over hver i et areal ud for vores keypoint center.
         for y in range(-sigma_dist, sigma_dist + 1):
@@ -497,13 +506,13 @@ def makeKeypointDescriptors(keypoints, Gaussian_images, num_bins=8, num_windows=
                 # -- som vi har gemt i keypoint.coordinates. Og det er ud fra det centrum vi har beregnet vores roterede
                 # -- x og y koordinater. Så vores position i billedet svarer til vores keypoint koordinater lagt sammen
                 # -- med vores koordinatpar for y roteret og x roteret. Den pixel gemmer vi i en variabel current pixel.
-                distance_x = current_image[int(y_rotated + keypoint.coordinates[0]), int((x_rotated + keypoint.coordinates[1]) + 1)] - current_image[int(y_rotated + keypoint.coordinates[0]), int((x_rotated + keypoint.coordinates[1]) - 1)]
-                distance_y = current_image[int((y_rotated + keypoint.coordinates[0]) - 1), int(x_rotated + keypoint.coordinates[1])] - current_image[int((y_rotated + keypoint.coordinates[0]) + 1), int(x_rotated + keypoint.coordinates[1])]
+                distance_x = current_image[int(y_rotated + keypoint_y), int((x_rotated + keypoint_x) + 1)]/255 - current_image[int(y_rotated + keypoint_y), int((x_rotated + keypoint_x) - 1)]/255
+                distance_y = current_image[int((y_rotated + keypoint_y) - 1), int(x_rotated + keypoint_x)]/255 - current_image[int((y_rotated + keypoint_y) + 1), int(x_rotated + keypoint_x)]/255
                 gradient_mag = np.sqrt(distance_x**2 + distance_y**2)
                 gradient_ori = (np.rad2deg(np.arctan2(distance_y,distance_x))-rotation_angle) % 360
                 pixel_contribution = gradient_mag * pixel_weight
 
-                # Nu har vi de to vinkel-bins som vores vinkel ligger imellem. Nu skal vi finde ud af hvor tæt den er
+                # Nu har vi de to vinkel-bins som vores vinkel ligger imellem. Nu skal vi finde ud af hvor tæt den er                
                 min_bin_index = int(np.floor(gradient_ori/degrees_pr_bin)) % num_bins
                 max_bin_index = int(np.ceil(gradient_ori/degrees_pr_bin)) % num_bins
 
@@ -511,25 +520,25 @@ def makeKeypointDescriptors(keypoints, Gaussian_images, num_bins=8, num_windows=
                 min_bin_angle_contribution = 1-((gradient_ori/degrees_pr_bin) - min_bin_index)
 
                 if min_bin_y >= 0 and min_bin_x >= 0:
-                    descriptor_histogram[min_bin_y, min_bin_x, min_bin_index] = pixel_contribution * UL_weight * min_bin_angle_contribution
+                    descriptor_histogram[min_bin_y, min_bin_x, min_bin_index] += pixel_contribution * UL_weight * min_bin_angle_contribution
                 if min_bin_y >= 0 and max_bin_x <= 3:
-                    descriptor_histogram[min_bin_y, max_bin_x, min_bin_index] = pixel_contribution * UR_weight * min_bin_angle_contribution
+                    descriptor_histogram[min_bin_y, max_bin_x, min_bin_index] += pixel_contribution * UR_weight * min_bin_angle_contribution
                 if max_bin_y <= 3 and min_bin_x >= 0:
-                    descriptor_histogram[max_bin_y, min_bin_x, min_bin_index] = pixel_contribution * LL_weight * min_bin_angle_contribution
+                    descriptor_histogram[max_bin_y, min_bin_x, min_bin_index] += pixel_contribution * LL_weight * min_bin_angle_contribution
                 if max_bin_y <= 3 and max_bin_x <= 3:
-                    descriptor_histogram[max_bin_y, max_bin_x, min_bin_index] = pixel_contribution * LR_weight * min_bin_angle_contribution
+                    descriptor_histogram[max_bin_y, max_bin_x, min_bin_index] += pixel_contribution * LR_weight * min_bin_angle_contribution
 
                 if min_bin_index != max_bin_index:
                     max_bin_angle_contribution = 1-(max_bin_index - (gradient_ori/degrees_pr_bin))
 
                     if min_bin_y >= 0 and min_bin_x >= 0:
-                        descriptor_histogram[min_bin_y, min_bin_x, max_bin_index] = pixel_contribution * UL_weight * max_bin_angle_contribution
+                        descriptor_histogram[min_bin_y, min_bin_x, max_bin_index] += pixel_contribution * UL_weight * max_bin_angle_contribution
                     if min_bin_y >= 0 and max_bin_x <= 3:
-                        descriptor_histogram[min_bin_y, max_bin_x, max_bin_index] = pixel_contribution * UR_weight * max_bin_angle_contribution
+                        descriptor_histogram[min_bin_y, max_bin_x, max_bin_index] += pixel_contribution * UR_weight * max_bin_angle_contribution
                     if max_bin_y <= 3 and min_bin_x >= 0:
-                        descriptor_histogram[max_bin_y, min_bin_x, max_bin_index] = pixel_contribution * LL_weight * max_bin_angle_contribution
+                        descriptor_histogram[max_bin_y, min_bin_x, max_bin_index] += pixel_contribution * LL_weight * max_bin_angle_contribution
                     if max_bin_y <= 3 and max_bin_x <= 3:
-                        descriptor_histogram[max_bin_y, max_bin_x, max_bin_index] = pixel_contribution * LR_weight * max_bin_angle_contribution
+                        descriptor_histogram[max_bin_y, max_bin_x, max_bin_index] += pixel_contribution * LR_weight * max_bin_angle_contribution
 
         descriptor_vector = []
 
@@ -537,9 +546,64 @@ def makeKeypointDescriptors(keypoints, Gaussian_images, num_bins=8, num_windows=
             for hist in row:
                 descriptor_vector.extend(hist)
 
-        print(len(descriptor_vector))
-        print(descriptor_vector)
+        descriptor_mag = np.sqrt(np.dot(descriptor_vector,descriptor_vector))
+        descriptor_value_threshold = descriptor_mag * magnitude_threshold
+        descriptor_vector = np.where(descriptor_vector > descriptor_value_threshold, descriptor_value_threshold, descriptor_vector)
+        new_descriptor_mag = np.sqrt(np.dot(descriptor_vector,descriptor_vector))
+        for i, vec_bin in enumerate(descriptor_vector):
+            descriptor_vector[i] = int(round((vec_bin * 512)/new_descriptor_mag)) if (vec_bin * 512)/new_descriptor_mag < 255 else 255
 
-        break
+        keypoint.descriptor = descriptor_vector.astype("uint8")
+        keypoints_with_descriptors.append(keypoint)
 
     return keypoints_with_descriptors
+
+
+def matchDescriptors(object_keypoints, data_keypoints, distance_ratio_treshold=0.8):
+    """
+    Den her metode er til for at sammenligne to arrays af descriptors. Metoden skal bruge to arrays af descriptors. For
+    at finde de nærmeste naboer gøres brug af k-nearest neighbor algoritmen. Det går kort sagt ud op at hvis vi har to
+    lister af desriptors list_a og list_b, så for hver descriptor i list_a looper vi over og måler distancen mellem
+    de descriptors. For hver sammenligning gemmer vi de to descriptors der har den korteste afstand til hinandenn.
+
+    Lad os sige vi har descriptor 1 fra liste af: D1_a. Den sammenlignes nu med alle descriptors i list_b. Den første
+    målte afstand mellem D1_a og D1_b vil selfølgelig være den korteste, da vi ikke har målt andre indtil nu. Hvis den
+    anden afstand (D1_a til D2_b) er kortere vil vi gemme den som den korteste. Hvis vi så finder en afstand der er
+    endnu kortere, fx D1_a til D5_b vil vi gemme den som den korteste afstand. Og på måde looper vi igennem begge lister
+    af descriptors og for hver descriptor i list_a finder vi den nærmeste descriptor i list_b.
+
+    Hvis vi tager det skridtet videre kan vi på samme måde gemme en liste af afstande til descriptors, over de x antal
+    descriptors der ligger tættest på. I det her tilfælde vil vi gerne gemme de nærmeste to descriptors. I så fald
+    har vi et array med to pladser, hvor vi først tjekker om den nye afstand er kortere end først index 0. Hvis ja, så
+    fyrer vi den ind på index 0. I så fald skal vi så rykke hele arrayet en tak og sætte den nye værdi ind på første
+    plads. Hvis ikke den er større så tjekker vi om den nye værdi er større end index 1. Hvis ja så rykker vi den ind på
+    den plads og rykker resten af arrayet en tak. Hvis ikke så hvis vi gemmer flere kan vi tjekke flere pladser igennem.
+    I vores tilfælde beholder vi kun de tætteste to.
+    """
+    # Step 1: Find nearest neighbours
+    match_list = []
+
+    for object_keypoint in object_keypoints:
+        distances_list = []
+        keypoint_match_list = []
+
+        for data_keypoint in data_keypoints:
+            dist = np.linalg.norm(object_keypoint.descriptor-data_keypoint.descriptor)
+
+            for i, current_distance in enumerate(distances_list):
+                if dist < current_distance or len(distances_list) < 2:
+
+                    distances_list.insert(i, dist)
+                    keypoint_match_list.insert(i, data_keypoint)
+
+                    if len(distances_list) > 2:
+                        del distances_list[2]
+
+                    if len(keypoint_match_list) > 2:
+                        del keypoint_match_list[2]
+
+        if len(distances_list) > 1:
+            if distances_list[1]*distance_ratio_treshold < distances_list[0]:
+                match_list.append([object_keypoint,keypoint_match_list[0]])
+
+    return match_list

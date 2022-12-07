@@ -15,6 +15,7 @@ from Libraries import SIFT
 from Libraries.OurKeyPoint import KeyPoint
 import time
 
+
 def makeImagePyramide(startingImage, scale, minWidth):
     """
     Returnere en pyramidegenerator, det vil sige den returnere et objekt man kan loope over, som så returnerer hvert enkelt billede
@@ -28,6 +29,7 @@ def makeImagePyramide(startingImage, scale, minWidth):
         yield currentImage
         currentImage = cv.resize(currentImage, (int(currentImage.shape[1] / scale), int(currentImage.shape[0] / scale)))
 
+
 def windowSlider(image, windowSize: tuple, stepSize):
     """
     Returnere en slicegenerator, som genererer et slice for hvert step igennem et billede, looper man over generatoren kan man så lave image processing på hvert slice.
@@ -38,6 +40,7 @@ def windowSlider(image, windowSize: tuple, stepSize):
     for y in range(0,image.shape[0], stepSize):
         for x in range(0, image.shape[1], stepSize):
             yield (y,x, image[y:y+windowSize[0], x:x+windowSize[1]])
+
 
 def makeGrayscale(img):
     """
@@ -71,6 +74,7 @@ def edgeWithSobel(img):
 
     output = cv.add(verticalApply, horizontalApply)
     return output
+
 
 def grassfire(img, whitepixel=255):
     """
@@ -116,6 +120,7 @@ def grassfire(img, whitepixel=255):
                 if not found:
                     blobs.append(startBurning([y + 1, x + 1], burningImage))
     return blobs
+
 
 def nonMaximumSupression(outlines, threshold, scores = None):
     boxes = np.array(outlines).astype("float")
@@ -186,6 +191,7 @@ def nonMaximumSupression(outlines, threshold, scores = None):
     realOutlines = boxes[realHits].astype("int")
     return realScores, realOutlines
 
+
 def returnScoreAndImageWithOutlines(image, hits, nmsTreshhold = 0.3):
     if not hits:
         return 0,image
@@ -202,42 +208,6 @@ def returnScoreAndImageWithOutlines(image, hits, nmsTreshhold = 0.3):
 
     return len(hitScores), outputImage
 
-
-def temp_test():
-    """
-    En funktion der indeholder alle mine metodekald når jeg tester forskellige features undervejs.
-    -------
-    ### Kan slettes efter behov. ###
-    """
-
-    img1 = cv.imread('Images/fyrfadslys.jpg')
-    img2 = cv.imread('Images/DillerCoins.jpg')
-    img3 = cv.imread('Images/coins_evenlyLit.png')
-
-    img1_vector = fm.calculateImageHistogramBinVector(img1, 16, 500)
-    img2_vector = fm.calculateImageHistogramBinVector(img2, 16, 500)
-    img3_vector = fm.calculateImageHistogramBinVector(img3, 16, 500)
-
-    print(img1_vector.shape)
-    print(img2_vector.shape)
-    print(img3_vector.shape)
-
-    print((img1_vector.astype(int)))
-    print((img2_vector.astype(int)))
-    print((img3_vector.astype(int)))
-
-    print(f'1-2: {fm.calculateEuclidianDistance(img1_vector,img2_vector)}')
-    print(f'1-3: {fm.calculateEuclidianDistance(img1_vector,img3_vector)}')
-    print(f'2-3: {fm.calculateEuclidianDistance(img2_vector,img3_vector)}')
-
-    cv.imshow("img1",img1)
-    cv.imshow("img2",img2)
-    cv.imshow("img3",img3)
-
-    fm.showHistogram(img1,16,500)
-
-    cv.waitKey(0)
-    cv.destroyAllWindows()
 
 def main():
     inputPicture = cv.imread('Images/fyrfadslys.jpg')
@@ -273,50 +243,6 @@ def main():
     cv.imshow('userSlice',userSlice)
     cv.imshow('output', doneImage)
 
-def temp_main():
-    img = cv.imread('Images/scarf.jpeg')
-    img = cv.resize(img,(int(img.shape[1]/5),int(img.shape[0]/5)))
-    img_corrected = el.illumination_mean_filter_BGR(img,151)
-    cv.imshow('BGR_corrected',img_corrected)
-    img_grayscale = cv.imread('Images/scarf.jpeg',0)
-    img_grayscale = cv.resize(img_grayscale,(int(img_grayscale.shape[1]/5),int(img_grayscale.shape[0]/5)))
-    img_grayscale_corrected = el.illumination_mean_filter_2D(img_grayscale,151)
-    cv.imshow('grayscale_corrected',img_grayscale_corrected)
-
-
-def testGuassian():
-    inputPicture = cv.imread('Images/candlelightsOnVaryingBackground.jpg')
-    greyscaleInput = makeGrayscale(inputPicture.copy())
-    greyscaleInputAsFloat32 = greyscaleInput.astype("float32")
-    keypoints = []
-    scalefactor = 2
-    SD = 1.6
-    for p, image in enumerate(makeImagePyramide(greyscaleInputAsFloat32,scalefactor,20)):
-
-        print('Creating DoG array ...')
-        Gaussian_images, DoG = SIFT.differenceOfGaussian(image, SD, scalefactor,5)
-
-        print('Calculating keypoints ...')
-        found_keypoints = SIFT.defineKeyPointsFromPixelExtrema(Gaussian_images,DoG, p,SD, scalefactor)
-
-        print(f'Creating feature descriptors ...')
-        print('Checking for duplicate keypoints ...')
-
-        print(f'\t - keypoints found in octave {p} : {len(found_keypoints)}')
-        sorted_keypoints = SIFT.checkForDuplicateKeypoints(found_keypoints,keypoints)
-        print(f'\t - new keypoints found in octave {p} : {len(sorted_keypoints)}')
-
-        keypoints_with_descriptors = SIFT.makeKeypointDescriptors(sorted_keypoints,Gaussian_images)
-
-        keypoints.extend(keypoints_with_descriptors)
-
-
-    print(f'Drawing keypoints ...')
-    for keypoint in keypoints:
-        # print(keypoint)
-        cv.circle(inputPicture, (int(round(keypoint.coordinates[1])),int(round(keypoint.coordinates[0]))), 2, color=(0, 0, 255),thickness=-1)
-    print(f'   Our SIFT keypoints found: {len(keypoints)}')
-    cv.imshow('keypoints', inputPicture)
 
 def testSift():
     input_picture = cv.imread('Images/candlelightsOnVaryingBackground.jpg')
@@ -344,15 +270,79 @@ def testMaxima():
 
     print(img_array)
 
+
+def testGuassian():
+    inputPicture = cv.imread('Images/candlelightsOnVaryingBackground.jpg')
+    greyscaleInput = makeGrayscale(inputPicture.copy())
+    greyscaleInputAsFloat32 = greyscaleInput.astype("float32")
+
+    inputPicture_user = cv.imread('Images/redCandleCutoutVaryingBackground.png')
+    greyscaleInput_user = makeGrayscale(inputPicture_user.copy())
+    greyscaleInputAsFloat32_user = greyscaleInput_user.astype("float32")
+
+    keypoints_picture = []
+    keypoints_user_marked_area = []
+    scalefactor = 2
+    SD = 1.6
+    for p, image in enumerate(makeImagePyramide(greyscaleInputAsFloat32_user,scalefactor,20)):
+
+        print('Creating DoG array ...')
+        Gaussian_images, DoG = SIFT.differenceOfGaussian(image, SD, scalefactor,5)
+
+        print('Creating keypoints ...')
+        found_keypoints = SIFT.defineKeyPointsFromPixelExtrema(Gaussian_images,DoG, p,SD, scalefactor)
+
+        print(f'Creating feature descriptors ...')
+        print('Checking for duplicate keypoints ...')
+
+        print(f'\t - keypoints found in octave {p} : {len(found_keypoints)}')
+        sorted_keypoints = SIFT.checkForDuplicateKeypoints(found_keypoints,keypoints_user_marked_area)
+        print(f'\t - new keypoints found in octave {p} : {len(sorted_keypoints)}')
+
+        keypoints_with_descriptors = SIFT.makeKeypointDescriptors(sorted_keypoints,Gaussian_images)
+        print(f'\t - keypoints with descriptors found in {p} : {len(keypoints_with_descriptors)}')
+
+        keypoints_user_marked_area.extend(keypoints_with_descriptors)
+
+    for p, image in enumerate(makeImagePyramide(greyscaleInputAsFloat32,scalefactor,20)):
+
+        print('Creating DoG array ...')
+        Gaussian_images, DoG = SIFT.differenceOfGaussian(image, SD, scalefactor,5)
+
+        print('Creating keypoints ...')
+        found_keypoints = SIFT.defineKeyPointsFromPixelExtrema(Gaussian_images,DoG, p,SD, scalefactor)
+
+        print(f'Creating feature descriptors ...')
+        print('Checking for duplicate keypoints ...')
+
+        print(f'\t - keypoints found in octave {p} : {len(found_keypoints)}')
+        sorted_keypoints = SIFT.checkForDuplicateKeypoints(found_keypoints,keypoints_picture)
+        print(f'\t - new keypoints found in octave {p} : {len(sorted_keypoints)}')
+
+        keypoints_with_descriptors = SIFT.makeKeypointDescriptors(sorted_keypoints,Gaussian_images)
+        print(f'\t - keypoints with descriptors found in {p} : {len(keypoints_with_descriptors)}')
+
+        keypoints_picture.extend(keypoints_with_descriptors)
+
+    match_keypoints = SIFT.matchDescriptors(keypoints_user_marked_area,keypoints_picture)
+    print(f'Drawing keypoints ...')
+    for keypoint in match_keypoints:
+        # print(keypoint)
+        cv.circle(inputPicture, (int(round(keypoint[1].coordinates[1])),int(round(keypoint[1].coordinates[0]))), 4, color=(0, 255, 0),thickness=-1)
+    print(f'   Our SIFT keypoints found: {len(match_keypoints)}')
+    cv.imshow('keypoints', inputPicture)
+
+
 if __name__ == "__main__":
-    print(f'Starting timer:')
+    print(f'~~~ STARTING TIMER ~~~')
     startTime = time.time()
+
     #main()
     testGuassian()
-
     #testMaxima()
     #testSift()
-    print(f'Timer ended: Total time = {time.time() - startTime} s')
+
+    print(f'~~~ TIMER ENDED: TOTAL TIME = {time.time() - startTime} s ~~~')
     cv.waitKey(0)
     cv.destroyAllWindows()
 
