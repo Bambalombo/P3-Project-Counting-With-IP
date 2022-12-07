@@ -270,61 +270,36 @@ def testMaxima():
 
     print(img_array)
 
+def computeKeypointsWithDescriptorsFromImage(greyscale_input_image, scale_factor=2, SD=1.6):
 
+    keypoints = []
+    for p, image in enumerate(makeImagePyramide(greyscale_input_image.astype("float32"), scale_factor, 20)):
+        print('Creating DoG array ...')
+        Gaussian_images, DoG = SIFT.differenceOfGaussian(image, SD, scale_factor, 5)
+
+        print('Creating keypoints ...')
+        found_keypoints = SIFT.defineKeyPointsFromPixelExtrema(Gaussian_images, DoG, p, SD, scale_factor)
+
+        print(f'Creating feature descriptors ...')
+        print('Checking for duplicate keypoints ...')
+
+        print(f'\t - keypoints found in octave {p} : {len(found_keypoints)}')
+        sorted_keypoints = SIFT.checkForDuplicateKeypoints(found_keypoints, keypoints)
+        print(f'\t - new keypoints found in octave {p} : {len(sorted_keypoints)}')
+
+        keypoints.extend(SIFT.makeKeypointDescriptors(sorted_keypoints, Gaussian_images))
+
+    return keypoints
 def testGuassian():
     inputPicture = cv.imread('Images/candlelightsOnVaryingBackground.jpg')
     greyscaleInput = makeGrayscale(inputPicture.copy())
-    greyscaleInputAsFloat32 = greyscaleInput.astype("float32")
-
+    input_picture_keypoints = computeKeypointsWithDescriptorsFromImage(greyscaleInput)
     inputPicture_user = cv.imread('Images/redCandleCutoutVaryingBackground.png')
     greyscaleInput_user = makeGrayscale(inputPicture_user.copy())
-    greyscaleInputAsFloat32_user = greyscaleInput_user.astype("float32")
+    marked_area_keypoints = computeKeypointsWithDescriptorsFromImage(greyscaleInput)
 
-    keypoints_picture = []
-    keypoints_user_marked_area = []
-    scalefactor = 2
-    SD = 1.6
-    for p, image in enumerate(makeImagePyramide(greyscaleInputAsFloat32_user,scalefactor,20)):
+    match_keypoints = SIFT.matchDescriptors(marked_area_keypoints,input_picture_keypoints)
 
-        print('Creating DoG array ...')
-        Gaussian_images, DoG = SIFT.differenceOfGaussian(image, SD, scalefactor,5)
-
-        print('Creating keypoints ...')
-        found_keypoints = SIFT.defineKeyPointsFromPixelExtrema(Gaussian_images,DoG, p,SD, scalefactor)
-
-        print(f'Creating feature descriptors ...')
-        print('Checking for duplicate keypoints ...')
-
-        print(f'\t - keypoints found in octave {p} : {len(found_keypoints)}')
-        sorted_keypoints = SIFT.checkForDuplicateKeypoints(found_keypoints,keypoints_user_marked_area)
-        print(f'\t - new keypoints found in octave {p} : {len(sorted_keypoints)}')
-
-        keypoints_with_descriptors = SIFT.makeKeypointDescriptors(sorted_keypoints,Gaussian_images)
-        print(f'\t - keypoints with descriptors found in {p} : {len(keypoints_with_descriptors)}')
-
-        keypoints_user_marked_area.extend(keypoints_with_descriptors)
-
-    for p, image in enumerate(makeImagePyramide(greyscaleInputAsFloat32,scalefactor,20)):
-
-        print('Creating DoG array ...')
-        Gaussian_images, DoG = SIFT.differenceOfGaussian(image, SD, scalefactor,5)
-
-        print('Creating keypoints ...')
-        found_keypoints = SIFT.defineKeyPointsFromPixelExtrema(Gaussian_images,DoG, p,SD, scalefactor)
-
-        print(f'Creating feature descriptors ...')
-        print('Checking for duplicate keypoints ...')
-
-        print(f'\t - keypoints found in octave {p} : {len(found_keypoints)}')
-        sorted_keypoints = SIFT.checkForDuplicateKeypoints(found_keypoints,keypoints_picture)
-        print(f'\t - new keypoints found in octave {p} : {len(sorted_keypoints)}')
-
-        keypoints_with_descriptors = SIFT.makeKeypointDescriptors(sorted_keypoints,Gaussian_images)
-        print(f'\t - keypoints with descriptors found in {p} : {len(keypoints_with_descriptors)}')
-
-        keypoints_picture.extend(keypoints_with_descriptors)
-
-    match_keypoints = SIFT.matchDescriptors(keypoints_user_marked_area,keypoints_picture)
     print(f'Drawing keypoints ...')
     for keypoint in match_keypoints:
         # print(keypoint)

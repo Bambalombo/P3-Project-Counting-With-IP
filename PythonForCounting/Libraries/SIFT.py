@@ -582,14 +582,12 @@ def matchDescriptors(object_keypoints, data_keypoints, distance_ratio_treshold=0
     """
     # Step 1: Find nearest neighbours
     match_list = []
-
     for object_keypoint in object_keypoints:
         distances_list = []
         keypoint_match_list = []
 
         for data_keypoint in data_keypoints:
             dist = np.linalg.norm(object_keypoint.descriptor-data_keypoint.descriptor)
-
             for i, current_distance in enumerate(distances_list):
                 if dist < current_distance or len(distances_list) < 2:
 
