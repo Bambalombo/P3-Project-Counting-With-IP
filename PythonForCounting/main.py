@@ -421,9 +421,18 @@ def expandMarkedArea(starting_coordinates, end_coordinates, input_picture):
     width = end_coordinates[1] - starting_coordinates[1]
     if 0 <= starting_coordinates[0] - height and end_coordinates[0] + height < input_picture.shape[0] \
             and 0 <= starting_coordinates[1] - width and end_coordinates[1] + width < input_picture.shape[1]:
-        return input_picture[starting_coordinates[0] - height: end_coordinates[0]+ height+1, starting_coordinates[1] - width: end_coordinates[1]+ width+1 ]
-    elif 0 >= starting_coordinates[0] - height
-def testMatching():
+        return input_picture[starting_coordinates[0] - height: end_coordinates[0] + height+1, starting_coordinates[1] - width: end_coordinates[1]+ width+1 ]
+    else:
+        return input_picture[starting_coordinates[0]:end_coordinates[0],starting_coordinates[1]:end_coordinates[1]]
+def discardKeypointsOutsideMarkedArea(keypoints: [KeyPoint], starting_coordinates, end_coordinates):
+    new_keypoints = []
+    for keypoint in keypoints:
+        if starting_coordinates[0] < keypoint.coordinates[0] < end_coordinates[0] and starting_coordinates[1] < keypoint.coordinates[1] < end_coordinates[1]:
+            new_keypoints.append(keypoint)
+    return new_keypoints
+
+
+def testMatching(marked_area_start, marked_area_end):
     # Picture keypoints
     inputPicture = cv.imread('Images/candlelightsOnVaryingBackground.jpg')
     print(inputPicture.shape)
@@ -438,14 +447,13 @@ def testMatching():
     marked_area_keypoints = computeKeypointsWithDescriptorsFromImage(greyscaleInput_user)
 
     for keypoint in marked_area_keypoints:
-        cv.circle(inputPicture_user, (int(round(keypoint.coordinates[1])), int(round(keypoint.coordinates[0]))), 3,
-                  color=(0, 255, 0), thickness=-1)
+        keypoint.computeKeypointPointersInMarkedImage(marked_area_start, marked_area_end)
 
 
     matches = SIFT.matchDescriptors(marked_area_keypoints,input_picture_keypoints)
-    for keypoint in matches:
-        for keypointmatch in keypoint:
-            cv.circle(inputPicture, (int(round(keypointmatch.coordinates[1])),int(round(keypointmatch.coordinates[0]))), 3, color=(0, 255, 0),thickness=-1)
+    for ref_keypoint_index, scene_matches in enumerate(matches):
+        for keypointmatch in scene_matches:
+            keypointmatch.computeKeypointPointersFromMatchingKeypoint(marked_area_keypoints[ref_keypoint_index])
 
     print(f'Our SIFT keypoints found {len(matches)} matching keypoints')
     cv.imshow('OUR Marked keypoints', inputPicture)
@@ -508,7 +516,7 @@ if __name__ == "__main__":
     #testMaxima()
     #testSift()
     #testMatchingOpenCV()
-    testMatching()
+    testMatching((12,12),(200,200))
     #compareDescriptors()
 
     print(f'~~~ TIMER ENDED: TOTAL TIME = {time.time() - startTime} s ~~~')
