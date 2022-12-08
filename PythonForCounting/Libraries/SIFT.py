@@ -1,4 +1,7 @@
 import math
+
+from matplotlib import pyplot as plt
+
 from .OurKeyPoint import KeyPoint
 import cv2 as cv
 import numpy as np
@@ -580,14 +583,15 @@ def matchDescriptors(object_keypoints, data_keypoints, distance_ratio_treshold=0
     den plads og rykker resten af arrayet en tak. Hvis ikke så hvis vi gemmer flere kan vi tjekke flere pladser igennem.
     I vores tilfælde beholder vi kun de tætteste to.
     """
-    # Step 1: Find nearest neighbours
     match_list = []
     for object_keypoint in object_keypoints:
         distances_list = []
         keypoint_match_list = []
 
+        # Vi finder neraest neighbours
         for data_keypoint in data_keypoints:
-            dist = np.linalg.norm(object_keypoint.descriptor-data_keypoint.descriptor)
+            dist_vector = object_keypoint.descriptor-data_keypoint.descriptor
+            dist = np.sqrt(np.dot(dist_vector,dist_vector))
             for i, current_distance in enumerate(distances_list):
                 if dist < current_distance or len(distances_list) < 2:
 
@@ -600,8 +604,78 @@ def matchDescriptors(object_keypoints, data_keypoints, distance_ratio_treshold=0
                     if len(keypoint_match_list) > 2:
                         del keypoint_match_list[2]
 
+        # Vi siger at hvis der er fundet nogle neighours
         if len(distances_list) > 1:
+            # ... så tjekker vi om distancen mellem de to er inden for 80% af hinanden
+            print(distances_list[1], distances_list[0])
             if distances_list[1]*distance_ratio_treshold < distances_list[0]:
+                # Hvis ja, så kalder vi det et match
                 match_list.append([object_keypoint,keypoint_match_list[0]])
 
     return match_list
+
+def matchKeypointsBetweenImages(marked_keypoints, scene_keypoints, marked_descriptors, scene_descriptors, marked_image, scene_image):
+    MIN_MATCH_COUNT = 10
+
+    # Passer billederne ind i stedet
+
+        #img1 = cv2.imread('box.png', 0)  # queryImage
+        #img2 = cv2.imread('box_in_scene.png', 0)  # trainImage
+
+
+    # Vores descriptors er opbevaret i hver keypoint. Hmmm....
+
+        #kp1, des1 = pysift.computeKeypointsAndDescriptors(img1)
+        #kp2, des2 = pysift.computeKeypointsAndDescriptors(img2)
+
+    # Initialize and use FLANN
+    FLANN_INDEX_KDTREE = 0
+    index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
+    search_params = dict(checks=50)
+    flann = cv.FlannBasedMatcher(index_params, search_params)
+    matches = flann.knnMatch(marked_descriptors, scene_descriptors, k=2)
+
+    # Lowe's ratio test
+    good = []
+    for m, n in matches:
+        if m.distance < 0.7 * n.distance:
+            good.append(m)
+
+    if len(good) > MIN_MATCH_COUNT:
+        # Estimate homography between template and scene
+        src_pts = np.float32([marked_keypoints[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
+        dst_pts = np.float32([scene_keypoints[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
+
+        M = cv.findHomography(src_pts, dst_pts, cv.RANSAC, 5.0)[0]
+
+        # Draw detected template in scene image
+        h, w = marked_image.shape
+        pts = np.float32([[0, 0],
+                          [0, h - 1],
+                          [w - 1, h - 1],
+                          [w - 1, 0]]).reshape(-1, 1, 2)
+        dst = cv.perspectiveTransform(pts, M)
+
+        scene_image = cv.polylines(scene_image, [np.int32(dst)], True, 255, 3, cv.LINE_AA)
+
+        h1, w1 = marked_image.shape
+        h2, w2 = scene_image.shape
+        nWidth = w1 + w2
+        nHeight = max(h1, h2)
+        hdif = int((h2 - h1) / 2)
+        newimg = np.zeros((nHeight, nWidth, 3), np.uint8)
+
+        for i in range(3):
+            newimg[hdif:hdif + h1, :w1, i] = marked_image
+            newimg[:h2, w1:w1 + w2, i] = scene_image
+
+        # Draw SIFT keypoint matches
+        for m in good:
+            pt1 = (int(marked_keypoints[m.queryIdx].pt[0]), int(marked_keypoints[m.queryIdx].pt[1] + hdif))
+            pt2 = (int(scene_keypoints[m.trainIdx].pt[0] + w1), int(scene_keypoints[m.trainIdx].pt[1]))
+            cv.line(newimg, pt1, pt2, (255, 0, 0))
+
+        plt.imshow(newimg)
+        plt.show()
+    else:
+        print("Not enough matches are found - %d/%d" % (len(good), MIN_MATCH_COUNT))

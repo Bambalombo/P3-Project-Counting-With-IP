@@ -245,15 +245,65 @@ def main():
 
 
 def testSift():
+    # Picture
     input_picture = cv.imread('Images/candlelightsOnVaryingBackground.jpg')
+    input_picture2 = input_picture.copy()
     input_picture = cv.resize(input_picture,(0,0),fx=0.5,fy=0.5)
     greyscaleInput = makeGrayscale(input_picture.copy())
-    sift = cv.SIFT_create()
-    keypoints = sift.detect(greyscaleInput, None)
-    print(f':OpenCV SIFT keypoints found: {len(keypoints)}')
 
-    img = cv.drawKeypoints(greyscaleInput, keypoints, input_picture)
-    cv.imshow('sift',img)
+    # User area
+    inputPicture_user = cv.imread('Images/redCandleCutoutVaryingBackground_large.jpg')
+    greyscaleInput_user = makeGrayscale(inputPicture_user.copy())
+    print(f'Finding keypoints in marked area:')
+
+    # Picture keypoints
+    sift = cv.SIFT_create()
+    input_picture_keypoints, input_picture_descriptors = sift.detectAndCompute(greyscaleInput, None)
+    print(f':OpenCV SIFT input keypoints found: {len(input_picture_keypoints)}')
+
+    # User area keypoints
+    sift_user = cv.SIFT_create()
+    marked_area_keypoints, marked_area_descriptors = sift_user.detectAndCompute(greyscaleInput_user, None)
+
+    print(f':OpenCV SIFT marked keypoints found: {len(marked_area_keypoints)}')
+
+    #img = cv.drawKeypoints(greyscaleInput, input_picture_keypoints, input_picture)
+    dist_array = []
+    print(f'Drawing found picture keypoints ({len(input_picture_keypoints)})...')
+    for user_descriptor, user_keypoint in zip(marked_area_descriptors,marked_area_keypoints):
+        y1 = 80
+        y2 = 130
+        x1 = 60
+        x2 = 110
+        if y1 < user_keypoint.pt[1] < y2 and x1 < user_keypoint.pt[0] < x2:
+            cv.circle(inputPicture_user,
+                      (int(round(user_keypoint.pt[0])*2), int(round(user_keypoint.pt[1])*2)), 3,
+                      color=(0, 255, 0), thickness=-1)
+
+            for image_descriptor, image_keypoint in zip(input_picture_descriptors,input_picture_keypoints):
+                dist = np.linalg.norm(user_descriptor - image_descriptor)
+                dist_array.append(dist)
+                if (dist) < 300:
+                    cv.circle(input_picture2, (int(round(image_keypoint.pt[0])*2), int(round(image_keypoint.pt[1])*2)),
+                              5, color=(255, 255, 0), thickness=-1)
+                else:
+                    # y1 = 430
+                    # y2 = 480
+                    # x1 = 610
+                    # x2 = 660
+                    # cv.rectangle(inputPicture2,(x1,y1),(x2,y2),(0,0,255),2)
+                    cv.circle(input_picture2, (int(round(image_keypoint.pt[0])*2), int(round(image_keypoint.pt[1])*2)),
+                              3, color=(0, 0, 255), thickness=-1)
+                    # if y1 < keypoint.pt[0] < y2 and x1 < keypoint.pt[1] < x2:
+                    #    cv.circle(inputPicture2, (int(round(keypoint.pt[1])),int(round(keypoint.pt[0]))), 3, color=(0, 255, 255),thickness=-1)
+                    #    print(keypoint.descriptor)
+                    #    picture_marked.append(keypoint.descriptor)
+
+    print(f'average dist SIFT: {np.median(dist_array)}')
+
+    cv.imshow('SIFT User keypoints', inputPicture_user)
+    cv.imshow('SIFT Picture keypoints', input_picture2)
+    #cv.imshow('sift',img)
 
 
 def testMaxima():
@@ -274,38 +324,178 @@ def computeKeypointsWithDescriptorsFromImage(greyscale_input_image, scale_factor
 
     keypoints = []
     for p, image in enumerate(makeImagePyramide(greyscale_input_image.astype("float32"), scale_factor, 20)):
-        print('Creating DoG array ...')
+        print(f'{p}: Creating DoG array ...')
         Gaussian_images, DoG = SIFT.differenceOfGaussian(image, SD, scale_factor, 5)
 
-        print('Creating keypoints ...')
+        print(f'{p}: Creating keypoints ...')
         found_keypoints = SIFT.defineKeyPointsFromPixelExtrema(Gaussian_images, DoG, p, SD, scale_factor)
 
-        print(f'Creating feature descriptors ...')
-        print('Checking for duplicate keypoints ...')
+        print(f'{p}: Creating feature descriptors ...')
+        print(f'{p}: Checking for duplicate keypoints ...')
 
-        print(f'\t - keypoints found in octave {p} : {len(found_keypoints)}')
+        print(f'{p}:\t - keypoints found in octave {p} : {len(found_keypoints)}')
         sorted_keypoints = SIFT.checkForDuplicateKeypoints(found_keypoints, keypoints)
-        print(f'\t - new keypoints found in octave {p} : {len(sorted_keypoints)}')
+        print(f'{p}:\t - new keypoints found in octave {p} : {len(sorted_keypoints)}\n')
 
         keypoints.extend(SIFT.makeKeypointDescriptors(sorted_keypoints, Gaussian_images))
 
     return keypoints
-def testGuassian():
-    inputPicture = cv.imread('Images/candlelightsOnVaryingBackground.jpg')
-    greyscaleInput = makeGrayscale(inputPicture.copy())
-    input_picture_keypoints = computeKeypointsWithDescriptorsFromImage(greyscaleInput)
-    inputPicture_user = cv.imread('Images/redCandleCutoutVaryingBackground.png')
-    greyscaleInput_user = makeGrayscale(inputPicture_user.copy())
-    marked_area_keypoints = computeKeypointsWithDescriptorsFromImage(greyscaleInput)
 
+
+def testGuassian():
+    # Picture keypoints
+    inputPicture = cv.imread('Images/candlelightsOnVaryingBackground.jpg')
+    print(inputPicture.shape)
+    greyscaleInput = makeGrayscale(inputPicture.copy())
+    print(f'Finding keypoints in full image:')
+    input_picture_keypoints = computeKeypointsWithDescriptorsFromImage(greyscaleInput)
+
+    # User area keypoints
+    inputPicture_user = cv.imread('Images/redCandleCutoutVaryingBackground_large.jpg')
+    greyscaleInput_user = makeGrayscale(inputPicture_user.copy())
+    print(f'Finding keypoints in marked area:')
+    marked_area_keypoints = computeKeypointsWithDescriptorsFromImage(greyscaleInput_user)
+
+    # Find matches
     match_keypoints = SIFT.matchDescriptors(marked_area_keypoints,input_picture_keypoints)
 
-    print(f'Drawing keypoints ...')
+    # Show results
+    inputPicture2 = inputPicture.copy()
+    print(f'Drawing found picture keypoints ({len(input_picture_keypoints)})...')
+    picture_marked = []
+    dist_array = []
+    for user_keypoint in marked_area_keypoints:
+        y1 = 90
+        y2 = 100
+        x1 = 70
+        x2 = 90
+        cv.rectangle(inputPicture_user,(x1,y1),(x2,y2),(0,0,255),1)
+        if y1 < user_keypoint.coordinates[0] < y2 and x1 < user_keypoint.coordinates[1] < x2:
+            cv.circle(inputPicture_user, (int(round(user_keypoint.coordinates[1])),int(round(user_keypoint.coordinates[0]))), 3, color=(0, 255, 0),thickness=-1)
+            print('hep')
+            for keypoint in input_picture_keypoints:
+                dist = np.linalg.norm(user_keypoint.descriptor-keypoint.descriptor)
+                dist_array.append(dist)
+                if (dist) < 1300:
+                    cv.circle(inputPicture2, (int(round(keypoint.coordinates[1])),int(round(keypoint.coordinates[0]))), 5, color=(255, 255, 0),thickness=-1)
+                else:
+                    cv.circle(inputPicture2, (int(round(keypoint.coordinates[1])),int(round(keypoint.coordinates[0]))), 3, color=(0, 0, 255),thickness=-1)
+
+
+    """
+    print(f'Drawing found user keypoints ({len(marked_area_keypoints)})...')
+    user_marked = []
+    for keypoint in marked_area_keypoints:
+        y1 = 80
+        y2 = 130
+        x1 = 60
+        x2 = 110
+        cv.rectangle(inputPicture_user,(x1,y1),(x2,y2),(0,0,255),2)
+        if y1 < keypoint.coordinates[0] < y2 and x1 < keypoint.coordinates[1] < x2:
+            cv.circle(inputPicture_user, (int(round(keypoint.coordinates[1])),int(round(keypoint.coordinates[0]))), 3, color=(0, 255, 0),thickness=-1)
+            print(keypoint.descriptor)
+            user_marked.append(keypoint.descriptor)
+
+    print(len(picture_marked),len(user_marked))
+
+    for pic_kp in picture_marked:
+        for user_kp in user_marked:
+            dist = np.linalg.norm(pic_kp-user_kp)
+            print(dist)
+    """
+
+
+    print(f'average dist OUR: {np.median(dist_array)}')
+
+    print(f'Drawing found match picture keypoints ({len(match_keypoints)})...')
     for keypoint in match_keypoints:
-        # print(keypoint)
-        cv.circle(inputPicture, (int(round(keypoint[1].coordinates[1])),int(round(keypoint[1].coordinates[0]))), 4, color=(0, 255, 0),thickness=-1)
-    print(f'   Our SIFT keypoints found: {len(match_keypoints)}')
-    cv.imshow('keypoints', inputPicture)
+        cv.circle(inputPicture, (int(round(keypoint[1].coordinates[1])),int(round(keypoint[1].coordinates[0]))), 3, color=(0, 255, 0),thickness=-1)
+
+    print(f'Our SIFT keypoints found {len(match_keypoints)} matching keypoints')
+    cv.imshow('OUR Marked keypoints', inputPicture_user)
+    #cv.imshow('OUR Scene keypoints', inputPicture2)
+    #cv.imshow('Match keypoints', inputPicture)
+
+
+def testMatching():
+    # Picture keypoints
+    inputPicture = cv.imread('Images/candlelightsOnVaryingBackground.jpg')
+    print(inputPicture.shape)
+    greyscaleInput = makeGrayscale(inputPicture.copy())
+    print(f'Finding keypoints in full image:')
+    input_picture_keypoints = computeKeypointsWithDescriptorsFromImage(greyscaleInput)
+
+    # User area keypoints
+    inputPicture_user = cv.imread('Images/redCandleCutoutVaryingBackground3.jpg')
+    greyscaleInput_user = makeGrayscale(inputPicture_user.copy())
+    print(f'Finding keypoints in marked area:')
+    marked_area_keypoints = computeKeypointsWithDescriptorsFromImage(greyscaleInput_user)
+
+    marked_descriptors = []
+    for keypoint in marked_area_keypoints:
+        marked_descriptors.append(keypoint.descriptor)
+
+    np.array(marked_descriptors)
+
+    scene_descriptors = np.array([])
+    for keypoint in input_picture_keypoints:
+        np.append(scene_descriptors,keypoint.descriptor)
+
+    sift = cv.SIFT_create()
+    marked_area_keypoints, marked_descriptors_sift = sift.detectAndCompute(greyscaleInput_user, None)
+    print(marked_descriptors)
+    print(marked_descriptors_sift)
+
+    SIFT.matchKeypointsBetweenImages(marked_area_keypoints,input_picture_keypoints,marked_descriptors,scene_descriptors,inputPicture_user,inputPicture)
+
+
+def testMatchingOpenCV():
+    # Picture
+    input_picture = cv.imread('Images/DillerCoins.jpg')
+    input_picture = cv.resize(input_picture,(0,0),fx=0.5,fy=0.5)
+    greyscale_input = makeGrayscale(input_picture.copy())
+
+    # User area
+    inputPicture_user = cv.imread('Images/CoinCutout.png')
+    greyscaleInput_user = makeGrayscale(inputPicture_user.copy())
+    print(f'Finding keypoints in marked area:')
+
+    # Picture keypoints
+    sift = cv.SIFT_create()
+    input_picture_keypoints, scene_descriptors = sift.detectAndCompute(greyscale_input, None)
+    print(f':OpenCV SIFT input keypoints found: {len(input_picture_keypoints)}')
+
+    # User area keypoints
+    sift = cv.SIFT_create()
+    marked_area_keypoints, marked_descriptors = sift.detectAndCompute(greyscaleInput_user, None)
+
+    SIFT.matchKeypointsBetweenImages(marked_area_keypoints,input_picture_keypoints,marked_descriptors,scene_descriptors,greyscaleInput_user,greyscale_input)
+
+
+def compareDescriptors():
+    # User area keypoints
+    inputPicture_user = cv.imread('Images/redCandleCutoutVaryingBackground_large.jpg')
+    greyscaleInput_user = makeGrayscale(inputPicture_user.copy())
+    print(f'Finding keypoints in marked area:')
+    marked_area_keypoints = computeKeypointsWithDescriptorsFromImage(greyscaleInput_user)
+
+    y1 = 90
+    y2 = 100
+    x1 = 70
+    x2 = 90
+
+    for keypoint in marked_area_keypoints:
+        if y1 < keypoint.coordinates[0] < y2 and x1 < keypoint.coordinates[1] < x2:
+            print('our descriptor')
+            print(keypoint)
+
+    sift = cv.SIFT_create()
+    marked_area_keypoints, marked_descriptors = sift.detectAndCompute(greyscaleInput_user, None)
+    for user_descriptor, user_keypoint in zip(marked_descriptors,marked_area_keypoints):
+        if y1 < user_keypoint.pt[1] < y2 and x1 < user_keypoint.pt[0] < x2:
+            print('sift descriptor')
+            print(user_descriptor)
+
 
 
 if __name__ == "__main__":
@@ -313,9 +503,12 @@ if __name__ == "__main__":
     startTime = time.time()
 
     #main()
-    testGuassian()
+    #testGuassian()
     #testMaxima()
     #testSift()
+    #testMatchingOpenCV()
+    testMatching()
+    #compareDescriptors()
 
     print(f'~~~ TIMER ENDED: TOTAL TIME = {time.time() - startTime} s ~~~')
     cv.waitKey(0)
