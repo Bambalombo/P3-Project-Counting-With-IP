@@ -562,8 +562,9 @@ def makeKeypointDescriptors(keypoints, Gaussian_images, num_bins=8, num_windows=
     return keypoints_with_descriptors
 
 
-def matchDescriptors(object_keypoints, data_keypoints, distance_ratio_treshold=0.8):
+def matchDescriptors(object_keypoints: [KeyPoint], data_keypoints: [KeyPoint], distance_ratio_treshold=1.5):
     """
+    ER IKKE SIKKER PÅ DENNE BESKRIVELSE GÆLDER LÆNGERE
     Den her metode er til for at sammenligne to arrays af descriptors. Metoden skal bruge to arrays af descriptors. For
     at finde de nærmeste naboer gøres brug af k-nearest neighbor algoritmen. Det går kort sagt ud op at hvis vi har to
     lister af desriptors list_a og list_b, så for hver descriptor i list_a looper vi over og måler distancen mellem
@@ -585,33 +586,16 @@ def matchDescriptors(object_keypoints, data_keypoints, distance_ratio_treshold=0
     """
     match_list = []
     for object_keypoint in object_keypoints:
-        distances_list = []
-        keypoint_match_list = []
-
+        keypoint_dists = []
         # Vi finder neraest neighbours
         for data_keypoint in data_keypoints:
-            dist_vector = object_keypoint.descriptor-data_keypoint.descriptor
-            dist = np.sqrt(np.dot(dist_vector,dist_vector))
-            for i, current_distance in enumerate(distances_list):
-                if dist < current_distance or len(distances_list) < 2:
+            dist = np.linalg.norm(object_keypoint.descriptor - data_keypoint.descriptor)
+            keypoint_dists.append(dist)
 
-                    distances_list.insert(i, dist)
-                    keypoint_match_list.insert(i, data_keypoint)
-
-                    if len(distances_list) > 2:
-                        del distances_list[2]
-
-                    if len(keypoint_match_list) > 2:
-                        del keypoint_match_list[2]
-
-        # Vi siger at hvis der er fundet nogle neighours
-        if len(distances_list) > 1:
-            # ... så tjekker vi om distancen mellem de to er inden for 80% af hinanden
-            print(distances_list[1], distances_list[0])
-            if distances_list[1]*distance_ratio_treshold < distances_list[0]:
-                # Hvis ja, så kalder vi det et match
-                match_list.append([object_keypoint,keypoint_match_list[0]])
-
+        min_dist = np.min(keypoint_dists)
+        indexes_of_close_keypoints = np.where(keypoint_dists < min_dist*distance_ratio_treshold)[0]
+        keypoint_match_list = np.array(data_keypoints)[indexes_of_close_keypoints]
+        match_list.append(keypoint_match_list)
     return match_list
 
 def matchKeypointsBetweenImages(marked_keypoints, scene_keypoints, marked_descriptors, scene_descriptors, marked_image, scene_image):

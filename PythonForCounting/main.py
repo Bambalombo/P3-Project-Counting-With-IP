@@ -416,7 +416,13 @@ def testGuassian():
     #cv.imshow('OUR Scene keypoints', inputPicture2)
     #cv.imshow('Match keypoints', inputPicture)
 
-
+def expandMarkedArea(starting_coordinates, end_coordinates, input_picture):
+    height = end_coordinates[0] - starting_coordinates[0]
+    width = end_coordinates[1] - starting_coordinates[1]
+    if 0 <= starting_coordinates[0] - height and end_coordinates[0] + height < input_picture.shape[0] \
+            and 0 <= starting_coordinates[1] - width and end_coordinates[1] + width < input_picture.shape[1]:
+        return input_picture[starting_coordinates[0] - height: end_coordinates[0]+ height+1, starting_coordinates[1] - width: end_coordinates[1]+ width+1 ]
+    elif 0 >= starting_coordinates[0] - height
 def testMatching():
     # Picture keypoints
     inputPicture = cv.imread('Images/candlelightsOnVaryingBackground.jpg')
@@ -426,29 +432,24 @@ def testMatching():
     input_picture_keypoints = computeKeypointsWithDescriptorsFromImage(greyscaleInput)
 
     # User area keypoints
-    inputPicture_user = cv.imread('Images/redCandleCutoutVaryingBackground3.jpg')
+    inputPicture_user = cv.imread('Images/redCandleCutoutVaryingBackground_large.jpg')
     greyscaleInput_user = makeGrayscale(inputPicture_user.copy())
     print(f'Finding keypoints in marked area:')
     marked_area_keypoints = computeKeypointsWithDescriptorsFromImage(greyscaleInput_user)
 
-    marked_descriptors = []
     for keypoint in marked_area_keypoints:
-        marked_descriptors.append(keypoint.descriptor)
-
-    np.array(marked_descriptors)
-
-    scene_descriptors = np.array([])
-    for keypoint in input_picture_keypoints:
-        np.append(scene_descriptors,keypoint.descriptor)
-
-    sift = cv.SIFT_create()
-    marked_area_keypoints, marked_descriptors_sift = sift.detectAndCompute(greyscaleInput_user, None)
-    print(marked_descriptors)
-    print(marked_descriptors_sift)
-
-    SIFT.matchKeypointsBetweenImages(marked_area_keypoints,input_picture_keypoints,marked_descriptors,scene_descriptors,inputPicture_user,inputPicture)
+        cv.circle(inputPicture_user, (int(round(keypoint.coordinates[1])), int(round(keypoint.coordinates[0]))), 3,
+                  color=(0, 255, 0), thickness=-1)
 
 
+    matches = SIFT.matchDescriptors(marked_area_keypoints,input_picture_keypoints)
+    for keypoint in matches:
+        for keypointmatch in keypoint:
+            cv.circle(inputPicture, (int(round(keypointmatch.coordinates[1])),int(round(keypointmatch.coordinates[0]))), 3, color=(0, 255, 0),thickness=-1)
+
+    print(f'Our SIFT keypoints found {len(matches)} matching keypoints')
+    cv.imshow('OUR Marked keypoints', inputPicture)
+    cv.imshow('The marked Area', inputPicture_user)
 def testMatchingOpenCV():
     # Picture
     input_picture = cv.imread('Images/DillerCoins.jpg')
