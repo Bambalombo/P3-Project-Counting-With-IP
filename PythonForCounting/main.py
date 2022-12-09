@@ -199,12 +199,12 @@ def returnScoreAndImageWithOutlines(image, hits, nmsTreshhold=0.3):
         scores.append(dist)
         outlines.append(outline)
     outputImage = image.copy()
-    #hitScores, hitOutlines = nonMaximumSupression(outlines, nmsTreshhold, scores)
-    for i, (startx, endx, starty, endy) in enumerate(outlines):
+    hitScores, hitOutlines = nonMaximumSupression(outlines, nmsTreshhold, scores)
+    for i, (startx, endx, starty, endy) in enumerate(hitOutlines):
         cv.rectangle(outputImage, (startx, starty), (endx, endy), (0, 255, 0), 2)
         cv.putText(outputImage, f'Score: {int(scores[i])}', (startx, starty), cv.FONT_HERSHEY_PLAIN, 1, (255, 255, 255))
 
-    return len(hits), outputImage
+    return len(hitScores), outputImage
 
 
 def main(input_scene, slice_start, slice_end, scale_ratio=2, SD=1.6):
@@ -238,14 +238,12 @@ def main(input_scene, slice_start, slice_end, scale_ratio=2, SD=1.6):
             for array_of_keypoint_matches in best_keypoints_in_scene:
                 for keypoint in array_of_keypoint_matches:
                     cv.circle(input_scene, (int(round(keypoint.coordinates[1])), int(round(keypoint.coordinates[0]))), 3, color=(0, 255, 0), thickness=-1)
-                    key_y, key_x = keypoint.coordinates[0] // scale_ratio , keypoint.coordinates[1] // scale_ratio
-                    print(f'Keypoint Scale:{keypoint.image_scale}, I*scaleratio {(i+1)**(1/scale_ratio)}')
-                    if x <= key_x <= x+windowSize[1] and y <= key_y <= y+windowSize[0] and keypoint.image_scale == (i+1)**(1/ scale_ratio):
-                        print('hep')
+                    key_y, key_x = keypoint.coordinates[0] * ((1/scale_ratio)**i), keypoint.coordinates[1] * ((1/scale_ratio)**i)
+                    if x <= key_x <= x+windowSize[1] and y <= key_y <= y+windowSize[0] and keypoint.image_scale == ((1/scale_ratio)**i):
                         keypoints_in_window += 1
 
             if len(validated_slice_keypoints) != 0:
-                if keypoints_in_window >= (1/5 * len(validated_slice_keypoints)) and hist_dist < 900:
+                if keypoints_in_window >= (0.25*len(validated_slice_keypoints)) and hist_dist < 900:
                     hits.append([hist_dist,
                              [x * (scale_ratio ** i), x * (scale_ratio ** i) + (window.shape[1] * (scale_ratio ** i)),
                               y * (scale_ratio ** i), y * (scale_ratio ** i) + (window.shape[0] * (scale_ratio ** i))]])
