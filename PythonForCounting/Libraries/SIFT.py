@@ -115,6 +115,10 @@ def defineKeyPointsFromPixelExtrema(gaussian_images, DoG_array, octave_index, SD
                         keypoints.extend(keypoints_with_orientation)
     return keypoints
 
+def resizeKeypoints(keypoints: [KeyPoint], scale_factor):
+    for keypoint in keypoints:
+        keypoint.coordinates = (np.array(keypoint.coordinates) / scale_factor)
+
 
 def checkForDuplicateKeypoints(new_keypoints, keypoints_array):
     """
@@ -319,7 +323,6 @@ def computeKeypointOrientations(keypoint, current_octave, image, SD_scale_factor
                     # -- retning. For senere at kunne opdele vores vinkler i bins med 10 graders mellemrum så bruger vi
                     # -- funktionen rad2deg til at omdanne resultatet fra radianer til grader.
                     orientation = np.rad2deg(np.arctan2(difference_y, difference_x))
-
                     # Jo længere væk fra keypointet vi befinder os, jo mindre skal denne pixels retning vægte i den
                     # -- endelige hovedretning, så nu bestemmer vi en vægt-faktor. Til beregningen bruges vores weight-
                     # -- factor fra før og hvor langt væk vi befinder os fra koordinatet, rad_y og rad_x. Vi vil som
@@ -336,7 +339,6 @@ def computeKeypointOrientations(keypoint, current_octave, image, SD_scale_factor
                     # -- Vi regner det ud ved at tage num_bins (36) og dele med 360. Det giver 1/10. Når de ganges,
                     # -- svarer det til at dele orientation med 10; vi finder den af de 36 bins hvor vinklen hører til.
                     hist_index = int(round(orientation * num_bins / 360.0))
-
                     # Til sidst placerer vi vinklen i den bin hvor den hører til. Vi bruger et lille trick idet vi siger
                     # -- [hist_index % num_bins]. Det gør vi fordi vores nuværende måde at beregne hist_index på godt
                     # -- kan resultere i at give et index 36, hvis graden er tæt på 360. Så giver det jo 360/10 = 36. Da
@@ -562,104 +564,58 @@ def makeKeypointDescriptors(keypoints, Gaussian_images, num_bins=8, num_windows=
     return keypoints_with_descriptors
 
 
-def matchDescriptors(object_keypoints: [KeyPoint], data_keypoints: [KeyPoint], distance_ratio_treshold=1.5):
+def matchDescriptorsWithKeypointFromSlice(object_keypoints: [KeyPoint], data_keypoints: [KeyPoint], distance_ratio_treshold=1.5):
     """
-    ER IKKE SIKKER PÅ DENNE BESKRIVELSE GÆLDER LÆNGERE
-    Den her metode er til for at sammenligne to arrays af descriptors. Metoden skal bruge to arrays af descriptors. For
-    at finde de nærmeste naboer gøres brug af k-nearest neighbor algoritmen. Det går kort sagt ud op at hvis vi har to
-    lister af desriptors list_a og list_b, så for hver descriptor i list_a looper vi over og måler distancen mellem
-    de descriptors. For hver sammenligning gemmer vi de to descriptors der har den korteste afstand til hinandenn.
-
-    Lad os sige vi har descriptor 1 fra liste af: D1_a. Den sammenlignes nu med alle descriptors i list_b. Den første
-    målte afstand mellem D1_a og D1_b vil selfølgelig være den korteste, da vi ikke har målt andre indtil nu. Hvis den
-    anden afstand (D1_a til D2_b) er kortere vil vi gemme den som den korteste. Hvis vi så finder en afstand der er
-    endnu kortere, fx D1_a til D5_b vil vi gemme den som den korteste afstand. Og på måde looper vi igennem begge lister
-    af descriptors og for hver descriptor i list_a finder vi den nærmeste descriptor i list_b.
-
-    Hvis vi tager det skridtet videre kan vi på samme måde gemme en liste af afstande til descriptors, over de x antal
-    descriptors der ligger tættest på. I det her tilfælde vil vi gerne gemme de nærmeste to descriptors. I så fald
-    har vi et array med to pladser, hvor vi først tjekker om den nye afstand er kortere end først index 0. Hvis ja, så
-    fyrer vi den ind på index 0. I så fald skal vi så rykke hele arrayet en tak og sætte den nye værdi ind på første
-    plads. Hvis ikke den er større så tjekker vi om den nye værdi er større end index 1. Hvis ja så rykker vi den ind på
-    den plads og rykker resten af arrayet en tak. Hvis ikke så hvis vi gemmer flere kan vi tjekke flere pladser igennem.
-    I vores tilfælde beholder vi kun de tætteste to.
+    Description
     """
-    match_list = []
-    for object_keypoint in object_keypoints:
-        keypoint_dists = []
-        # Vi finder neraest neighbours
-        for data_keypoint in data_keypoints:
+    best_match_list = [[]for _ in range(len(object_keypoints))]
+    best_match_dist = [[]for _ in range(len(object_keypoints))]
+    for data_keypoint in data_keypoints:
+        dist_list = []
+        for object_keypoint in object_keypoints:
             dist = np.linalg.norm(object_keypoint.descriptor - data_keypoint.descriptor)
-            keypoint_dists.append(dist)
+            dist_list.append(dist)
+        if len(dist_list) == 0:
+            continue
+        best_match_list[dist_list.index((min(dist_list)))].append(data_keypoint)
+        best_match_dist[dist_list.index((min(dist_list)))].append(min(dist_list))
 
-        min_dist = np.min(keypoint_dists)
-        indexes_of_close_keypoints = np.where(keypoint_dists < min_dist*distance_ratio_treshold)[0]
-        keypoint_match_list = np.array(data_keypoints)[indexes_of_close_keypoints]
-        match_list.append(keypoint_match_list)
-    return match_list
+    output_match_list = []
+    for object_keypoint_dists, object_keypoint_matches in zip(best_match_dist, best_match_list):
+        if len(object_keypoint_dists) == 0:
+            continue
+        min_value = min(i for i in object_keypoint_dists if i > 0)
+        indices = np.where(object_keypoint_dists < min_value*distance_ratio_treshold)[0]
+        output_match_list.append(np.array(object_keypoint_matches)[indices])
 
-def matchKeypointsBetweenImages(marked_keypoints, scene_keypoints, marked_descriptors, scene_descriptors, marked_image, scene_image):
-    MIN_MATCH_COUNT = 10
-
-    # Passer billederne ind i stedet
-
-        #img1 = cv2.imread('box.png', 0)  # queryImage
-        #img2 = cv2.imread('box_in_scene.png', 0)  # trainImage
+    return output_match_list
 
 
-    # Vores descriptors er opbevaret i hver keypoint. Hmmm....
+def validateKeypoints(slice_keypoints: [KeyPoint], scene_keypoints: [KeyPoint]):
+    validated_keypoints = []
+    for slice_keypoint in slice_keypoints:
+        if not kNearestNeighbor(slice_keypoint,scene_keypoints) == None:
+            validated_keypoints.append(slice_keypoint)
 
-        #kp1, des1 = pysift.computeKeypointsAndDescriptors(img1)
-        #kp2, des2 = pysift.computeKeypointsAndDescriptors(img2)
+    return validated_keypoints
 
-    # Initialize and use FLANN
-    FLANN_INDEX_KDTREE = 0
-    index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
-    search_params = dict(checks=50)
-    flann = cv.FlannBasedMatcher(index_params, search_params)
-    matches = flann.knnMatch(marked_descriptors, scene_descriptors, k=2)
 
-    # Lowe's ratio test
-    good = []
-    for m, n in matches:
-        if m.distance < 0.7 * n.distance:
-            good.append(m)
+def kNearestNeighbor(keypoint: KeyPoint, data: [KeyPoint], kNN_treshold=0.8):
+    nearest_neighbors = []
+    nearest_neighbors_dist = []
 
-    if len(good) > MIN_MATCH_COUNT:
-        # Estimate homography between template and scene
-        src_pts = np.float32([marked_keypoints[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
-        dst_pts = np.float32([scene_keypoints[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
+    for data_keypoint in data:
+        dist = np.linalg.norm(data_keypoint.descriptor - keypoint.descriptor)
+        if len(nearest_neighbors_dist) != 2:
+            nearest_neighbors_dist.append(dist)
+            nearest_neighbors.append(keypoint)
+        elif max(nearest_neighbors_dist) > dist:
+            nearest_neighbors_dist[nearest_neighbors_dist.index(max(nearest_neighbors_dist))] = dist
+            nearest_neighbors[nearest_neighbors_dist.index(max(nearest_neighbors_dist))] = keypoint
 
-        M = cv.findHomography(src_pts, dst_pts, cv.RANSAC, 5.0)[0]
-
-        # Draw detected template in scene image
-        h, w = marked_image.shape
-        pts = np.float32([[0, 0],
-                          [0, h - 1],
-                          [w - 1, h - 1],
-                          [w - 1, 0]]).reshape(-1, 1, 2)
-        dst = cv.perspectiveTransform(pts, M)
-
-        scene_image = cv.polylines(scene_image, [np.int32(dst)], True, 255, 3, cv.LINE_AA)
-
-        h1, w1 = marked_image.shape
-        h2, w2 = scene_image.shape
-        nWidth = w1 + w2
-        nHeight = max(h1, h2)
-        hdif = int((h2 - h1) / 2)
-        newimg = np.zeros((nHeight, nWidth, 3), np.uint8)
-
-        for i in range(3):
-            newimg[hdif:hdif + h1, :w1, i] = marked_image
-            newimg[:h2, w1:w1 + w2, i] = scene_image
-
-        # Draw SIFT keypoint matches
-        for m in good:
-            pt1 = (int(marked_keypoints[m.queryIdx].pt[0]), int(marked_keypoints[m.queryIdx].pt[1] + hdif))
-            pt2 = (int(scene_keypoints[m.trainIdx].pt[0] + w1), int(scene_keypoints[m.trainIdx].pt[1]))
-            cv.line(newimg, pt1, pt2, (255, 0, 0))
-
-        plt.imshow(newimg)
-        plt.show()
+    if min(nearest_neighbors_dist) == 0:
+        return nearest_neighbors[nearest_neighbors_dist.index(min(nearest_neighbors_dist))]
+    elif min(nearest_neighbors_dist) >= max(nearest_neighbors_dist) * kNN_treshold:
+        return nearest_neighbors[nearest_neighbors_dist.index(min(nearest_neighbors_dist))]
     else:
-        print("Not enough matches are found - %d/%d" % (len(good), MIN_MATCH_COUNT))
+        return None

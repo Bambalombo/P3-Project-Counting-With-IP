@@ -16,13 +16,13 @@ class KeyPoint:
     def __repr__(self):
         return f'Keypoint: \n Coordinates = {self.coordinates} \n Strenght = {self.strength} \n Octave = {self.octave} \n Scale Space = {self.scale_space} \n Image Scale = {self.image_scale} \n Size (sigma) = {self.size_sigma} \n Orientation = {self.orientation}, \n Pointing angle = {self.pointing_angle}, \n Pointing length = {self.pointing_length}, \n Pointing point = {self.pointing_point}'
     def computeKeypointPointersInMarkedImage(self, starting_coordinates, end_coordinates):
-        center_y = end_coordinates[0] - int(starting_coordinates[0] / 2)
-        center_x = end_coordinates[1] - int(starting_coordinates[1] / 2)
+        center_y = int((end_coordinates[0] - starting_coordinates[0]) / 2)
+        center_x = int((end_coordinates[1] - starting_coordinates[1]) / 2)
         self.pointing_point = (center_y,center_x)
-        self.pointing_length = np.sqrt((self.coordinates[0]-center_y)**2 + (self.coordinates[1]-center_x)**2) / self.octave
-        self.pointing_angle = np.rad2deg(np.arctan2(center_y-self.coordinates[0], center_x-self.coordinates[1])) - self.orientation
+        self.pointing_length = np.sqrt((center_y-self.coordinates[0])**2 + (center_x-self.coordinates[1])**2) / self.image_scale
+        self.pointing_angle = (np.rad2deg(np.arctan2(center_y-self.coordinates[0], center_x-self.coordinates[1])) + self.orientation) % 360
 
     def computeKeypointPointersFromMatchingKeypoint(self, keypoint):
-       self.pointing_length = keypoint.pointing_length * self.octave
-       self.pointing_angle = keypoint.pointing_angle + self.orientation
-       self.pointing_point = [self.pointing_length * np.sin(np.deg2rad(self.pointing_angle)) + self.coordinates[0], self.pointing_length * np.cos(np.deg2rad(self.pointing_angle)) + self.coordinates[1]]
+       self.pointing_length = keypoint.pointing_length * self.image_scale
+       self.pointing_angle = (keypoint.pointing_angle - self.orientation) % 360
+       self.pointing_point = [(self.pointing_length * np.sin(np.deg2rad(self.pointing_angle))) + self.coordinates[0], (self.pointing_length * np.cos(np.deg2rad(self.pointing_angle))) + self.coordinates[1]]
