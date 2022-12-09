@@ -253,6 +253,7 @@ def main():
 
     #looper over alle billeder i billedpyramiden, man behøver ikke at lave pyramiden først, den kan laves på samme linje hernede
     for i, image in enumerate(imagePyramid):
+        cv.imshow("Image: "+str(i+1), image)
         #looper over alle vinduerne i billedet
         for (y,x,window) in windowSlider(image,windowSize,int(windowSize[0]/3)):
             #Vinduet kan godt blive lavet halvt uden for billedet, hvis dette ikke er ønsket kan vi skippe den beregning i loopet men det er lige en diskussion vi skal have i gruppen
@@ -268,10 +269,10 @@ def main():
                     hits.append([euc_dist,[x,x+window.shape[1],y,y+window.shape[0]]])
 
     score, doneImage = returnScoreAndImageWithOutlines(inputPicture,hits, 0.1)
-    print(score)
-    cv.imshow('input', inputPicture)
-    cv.imshow('userSlice',userSlice)
-    cv.imshow('output', doneImage)
+    #print(score)
+    #cv.imshow('input', inputPicture)
+    #cv.imshow('userSlice',userSlice)
+    #cv.imshow('output', doneImage)
 
 def temp_main():
     img = cv.imread('Images/scarf.jpeg')

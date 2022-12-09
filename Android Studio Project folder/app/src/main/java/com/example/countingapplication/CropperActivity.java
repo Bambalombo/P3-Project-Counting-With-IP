@@ -14,7 +14,6 @@ import java.util.UUID;
 
 public class CropperActivity extends AppCompatActivity {
 
-    ActivityMainBinding binding;
     String sourceUri, destinationUri;
     public static Uri inputImage;
 

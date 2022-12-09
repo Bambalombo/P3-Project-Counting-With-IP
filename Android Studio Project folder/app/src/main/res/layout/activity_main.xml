@@ -13,12 +13,13 @@
         android:layout_height="wrap_content"
         android:gravity="center"
         android:textSize="20dp"
+        android:textColor="@color/black"
         android:id="@+id/sliceTxt"/>
 
     <ImageView
         android:layout_marginTop="10dp"
         android:layout_width="match_parent"
-        android:layout_height="150dp"
+        android:layout_height="100dp"
         android:id="@+id/sliceView"/>
 
     <TextView
@@ -26,19 +27,36 @@
         android:layout_height="wrap_content"
         android:gravity="center"
         android:layout_marginTop="20dp"
-        android:text="Import an image to start counting!"
+        android:text="Take a picture or import an image to start counting!"
+        android:textColor="@color/black"
         android:textSize="20dp"
         android:id="@+id/inputImageTxt"/>
+
+    <ImageView
+        android:id="@+id/inputImageView"
+        android:layout_width="match_parent"
+        android:layout_height="250dp"
+        android:layout_marginTop="10dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="COUNT: 8"
+        android:textColor="@color/black"
+        android:textSize="20dp"
+        android:id="@+id/inputImageTx22t"/>
+
+    <Button
+        android:id="@+id/startCountingButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Open camera"
+        android:enabled="true" />
 
     <Button
         android:id="@+id/selectImageButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Import Image" />
-
-    <ImageView
-        android:layout_marginTop="10dp"
-        android:layout_width="match_parent"
-        android:layout_height="400dp"
-        android:id="@+id/inputImageView"/>
 </LinearLayout>
