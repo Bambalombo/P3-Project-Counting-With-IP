@@ -9,6 +9,7 @@ from Libraries.OurKeyPoint import KeyPoint
 import time
 from Libraries import fastOpenCVVersion as openCVpipeline
 import copy
+import os
 
 
 def makeImagePyramide(starting_image, scale, min_width):
@@ -202,12 +203,13 @@ def returnScoreAndImageWithOutlines(image, hits, nmsTreshhold=0.3):
     hitScores, hitOutlines = nonMaximumSupression(outlines, nmsTreshhold, scores)
     for i, (startx, endx, starty, endy) in enumerate(hitOutlines):
         cv.rectangle(outputImage, (startx, starty), (endx, endy), (0, 255, 0), 2)
-        cv.putText(outputImage, f'Score: {int(scores[i])}', (startx, starty), cv.FONT_HERSHEY_PLAIN, 1, (255, 255, 255))
+        #cv.putText(outputImage, f'Score: {int(scores[i])}', (startx, starty), cv.FONT_HERSHEY_PLAIN, 1, (255, 255, 255))
 
     return len(hitScores), outputImage
 
 
-def main(input_scene, slice_start, slice_end, scale_ratio=2, SD=1.6):
+def main(input_scene,input_file_name, slice_start, slice_end, scale_ratio=2, SD=1.6, color_hist_threshold = 1000):
+    startTime = time.time()
     user_slice = input_scene[slice_start[0]:slice_end[0],slice_start[1]: slice_end[1]]
     slice_feature_vector = fm.calculateImageHistogramBinVector(user_slice, 16, 500)
     windowSize = (int(user_slice.shape[0]), int(user_slice.shape[1]))
@@ -215,9 +217,10 @@ def main(input_scene, slice_start, slice_end, scale_ratio=2, SD=1.6):
     greyscale_scene = makeGrayscale(input_scene.copy())
     keypoints_scene, keypoints_slice = computeKeypointsWithDescriptorsFromImage(greyscale_scene, slice_start, slice_end, scale_factor=scale_ratio, SD=SD)
     validated_slice_keypoints = SIFT.validateKeypoints(keypoints_slice, keypoints_scene)
-    print(f'validated keypoints: {len(validated_slice_keypoints)}')
+    array_to_print = [f'validated keypoints from slice: {len(validated_slice_keypoints)} \n']
 
     best_keypoints_in_scene = SIFT.matchDescriptorsWithKeypointFromSlice(validated_slice_keypoints, keypoints_scene)
+    array_to_print.append(f'total keypoints mathching validated slice keypoints in image: {sum(len(l)for l in best_keypoints_in_scene)}\n')
     image_pyramid = makeImagePyramide(input_scene, scale_ratio, windowSize[1])
     # definere vinduestørrelsen, tænker den skulle laves ud fra inputbilledet
     # vores liste over hits
@@ -235,35 +238,119 @@ def main(input_scene, slice_start, slice_end, scale_ratio=2, SD=1.6):
             currentWindowVector = fm.calculateImageHistogramBinVector(window, 16, 500)
             hist_dist = fm.calculateEuclidianDistance(slice_feature_vector, currentWindowVector)
             keypoints_in_window = 0
+            image_scale = ((1/scale_ratio)**i)
             for array_of_keypoint_matches in best_keypoints_in_scene:
                 for keypoint in array_of_keypoint_matches:
-                    cv.circle(input_scene, (int(round(keypoint.coordinates[1])), int(round(keypoint.coordinates[0]))), 3, color=(0, 255, 0), thickness=-1)
-                    key_y, key_x = keypoint.coordinates[0] * ((1/scale_ratio)**i), keypoint.coordinates[1] * ((1/scale_ratio)**i)
-                    if x <= key_x <= x+windowSize[1] and y <= key_y <= y+windowSize[0] and keypoint.image_scale == ((1/scale_ratio)**i):
+                    cv.circle(input_scene, (int(round(keypoint.coordinates[1])), int(round(keypoint.coordinates[0]))), 3, color=(255, 0, 0), thickness=-1)
+                    key_y, key_x = keypoint.coordinates[0] * image_scale, keypoint.coordinates[1] * image_scale
+                    if x <= key_x <= x+windowSize[1] and y <= key_y <= y+windowSize[0] and keypoint.image_scale == image_scale:
                         keypoints_in_window += 1
 
             if len(validated_slice_keypoints) != 0:
-                if keypoints_in_window >= (0.25*len(validated_slice_keypoints)) and hist_dist < 900:
+                if keypoints_in_window >= (0.25*len(validated_slice_keypoints)) and hist_dist < color_hist_threshold:
                     hits.append([hist_dist,
                              [x * (scale_ratio ** i), x * (scale_ratio ** i) + (window.shape[1] * (scale_ratio ** i)),
                               y * (scale_ratio ** i), y * (scale_ratio ** i) + (window.shape[0] * (scale_ratio ** i))]])
             else:
-                if hist_dist < 900:
+                if hist_dist < color_hist_threshold:
                     hits.append([hist_dist,
                              [x * (scale_ratio ** i), x * (scale_ratio ** i) + (window.shape[1] * (scale_ratio ** i)),
                               y * (scale_ratio ** i), y * (scale_ratio ** i) + (window.shape[0] * (scale_ratio ** i))]])
-
-
+    direct = input_file_name.split(".")[0]
+    parent_direct = r"C:\Users\FrederikDesktop\Documents\GitHub\P3-Project-Counting-With-IP\PythonForCounting\TestOutput\Our\\"
+    path = os.path.join(parent_direct, direct)
+    os.mkdir(path)
+    path_for_image = path+r"\\"+input_file_name
+    path_for_slice = path+r"\\SliceUsed.jpg"
+    path_for_write = path + r"\\scores.txt"
     score, doneImage = returnScoreAndImageWithOutlines(input_scene, hits, 0.1)
-    print(score)
-    cv.imshow('input', input_scene)
-    cv.imshow('userSlice', user_slice)
-    cv.imshow('output', doneImage)
+    cv.imwrite(path_for_image,doneImage)
+    cv.imwrite(path_for_slice, user_slice)
+    array_to_print.append(f'Counted objects: {score}\n')
+    array_to_print.append(f'Computing time: {time.time() - startTime} s\n')
+    writer_object = open(path_for_write,"w")
+    for l in array_to_print:
+        writer_object.write(l)
+    writer_object.close()
+def mainCV(input_scene,input_file_name, slice_start, slice_end, scale_ratio=2, SD=1.6, color_hist_threshold = 1000):
+    startTime = time.time()
+    user_slice = input_scene[slice_start[0]:slice_end[0],slice_start[1]: slice_end[1]]
+    slice_feature_vector = fm.calculateImageHistogramBinVector(user_slice, 16, 500)
+    windowSize = (int(user_slice.shape[0]), int(user_slice.shape[1]))
 
+    greyscale_scene = makeGrayscale(input_scene.copy())
+    sift = cv.SIFT_create()
+    input_scene_keypoints, input_scene_descriptors = sift.detectAndCompute(greyscale_scene, None)
+    user_slice_keypoints = []
+    user_slice_descriptors = []
+    for keypoint,descriptor in zip(input_scene_keypoints, input_scene_descriptors):
+        if slice_start[0] <= keypoint.pt[1] <= slice_end[0] and slice_start[1] <= keypoint.pt[0] <= slice_end[1]:
+            user_slice_keypoints.append(cv.KeyPoint(*keypoint.pt, keypoint.size, keypoint.angle, keypoint.response, keypoint.octave))
+            user_slice_descriptors.append(copy.deepcopy(descriptor))
 
+    validated_slice_keypoints, validated_slice_descriptors = SIFT.validateOpenCVKeypoints(user_slice_keypoints, user_slice_descriptors, input_scene_keypoints, input_scene_descriptors)
+    array_to_print = [f'validated keypoints from slice: {len(validated_slice_keypoints)} \n']
+
+    best_keypoints_in_scene, best_descriptors_in_scene = SIFT.matchOpenCVDescriptorsWithKeypointFromSlice(validated_slice_keypoints, validated_slice_descriptors, input_scene_keypoints, input_scene_descriptors)
+    array_to_print.append(f'total keypoints mathching validated slice keypoints in image: {sum(len(l)for l in best_keypoints_in_scene)}\n')
+    image_pyramid = makeImagePyramide(input_scene, scale_ratio, windowSize[1])
+    # definere vinduestørrelsen, tænker den skulle laves ud fra inputbilledet
+    # vores liste over hits
+    hits = []
+
+    # looper over alle billeder i billedpyramiden, man behøver ikke at lave pyramiden først, den kan laves på samme linje hernede
+    for i, image in enumerate(image_pyramid):
+        # looper over alle vinduerne i billedet
+        for (y, x, window) in windowSlider(image, windowSize, int(windowSize[0] / 3)):
+            # Vinduet kan godt blive lavet halvt uden for billedet, hvis dette ikke er ønsket kan vi skippe den
+            # beregning i loopet men det er lige en diskussion vi skal have i gruppen
+            if window.shape[0] != windowSize[0] or window.shape[1] != windowSize[1]:
+                continue
+            # Lav vores image processing her
+            currentWindowVector = fm.calculateImageHistogramBinVector(window, 16, 500)
+            hist_dist = fm.calculateEuclidianDistance(slice_feature_vector, currentWindowVector)
+            keypoints_in_window = 0
+            image_scale = ((1/scale_ratio)**i)
+            for array_of_keypoint_matches in best_keypoints_in_scene:
+                for keypoint in array_of_keypoint_matches:
+                    cv.circle(input_scene, (int(round(keypoint.pt[0])), int(round(keypoint.pt[1]))), 3, color=(255, 0, 0), thickness=-1)
+                    key_y, key_x = keypoint.pt[1] * image_scale, keypoint.pt[0] * image_scale
+                    octave = keypoint.octave & 255
+                    if octave >= 128:
+                        octave = octave | -128
+                    scale = 1 / np.float32(1 << octave) if octave >= 0 else np.float32(1 << -octave)
+                    if x <= key_x <= x+windowSize[1] and y <= key_y <= y+windowSize[0] and scale == image_scale:
+                        keypoints_in_window += 1
+
+            if len(validated_slice_keypoints) != 0:
+                if keypoints_in_window >= (0.25*len(validated_slice_keypoints)) and hist_dist < color_hist_threshold:
+                    hits.append([hist_dist,
+                             [x * (scale_ratio ** i), x * (scale_ratio ** i) + (window.shape[1] * (scale_ratio ** i)),
+                              y * (scale_ratio ** i), y * (scale_ratio ** i) + (window.shape[0] * (scale_ratio ** i))]])
+            else:
+                if hist_dist < color_hist_threshold:
+                    hits.append([hist_dist,
+                             [x * (scale_ratio ** i), x * (scale_ratio ** i) + (window.shape[1] * (scale_ratio ** i)),
+                              y * (scale_ratio ** i), y * (scale_ratio ** i) + (window.shape[0] * (scale_ratio ** i))]])
+    direct = input_file_name.split(".")[0]
+    parent_direct = r"C:\Users\FrederikDesktop\Documents\GitHub\P3-Project-Counting-With-IP\PythonForCounting\TestOutput\OpenCV\\"
+    path = os.path.join(parent_direct, direct)
+    os.mkdir(path)
+    path_for_image = path+r"\\"+input_file_name
+    path_for_slice = path+r"\\SliceUsed.jpg"
+    path_for_write = path + r"\\scores.txt"
+    score, doneImage = returnScoreAndImageWithOutlines(input_scene, hits, 0.1)
+    cv.imwrite(path_for_image,doneImage)
+    cv.imwrite(path_for_slice, user_slice)
+    array_to_print.append(f'Counted objects: {score}\n')
+    array_to_print.append(f'Computing time: {time.time() - startTime} s\n')
+    writer_object = open(path_for_write,"w")
+    for l in array_to_print:
+        writer_object.write(l)
+    writer_object.close()
 def testSift():
     # Picture
-    input_scene = cv.imread('Images/fyrfadslys.jpg')
+    input_scene = cv.imread('TestInput/fyrfadslys.jpg')
     input_scene2 = input_scene.copy()
     greyscaleInput = makeGrayscale(input_scene.copy())
 
@@ -316,17 +403,17 @@ def computeKeypointsWithDescriptorsFromImage(greyscale_input_image, slice_start,
     keypoints_slice = []
 
     for p, image in enumerate(makeImagePyramide(greyscale_input_image.astype("float32"), scale_factor, 10)):
-        print(f'{p}: Creating DoG array ...')
+        #print(f'{p}: Creating DoG array ...')
         Gaussian_images, DoG = SIFT.differenceOfGaussian(image, SD, scale_factor, 5)
 
-        print(f'{p}: Creating keypoints ...')
+       # print(f'{p}: Creating keypoints ...')
         found_keypoints = SIFT.defineKeyPointsFromPixelExtrema(Gaussian_images, DoG, p, SD, scale_factor)
-        print(f'{p}: Creating feature descriptors ...')
-        print(f'{p}: Checking for duplicate keypoints ...')
+       # print(f'{p}: Creating feature descriptors ...')
+      #  print(f'{p}: Checking for duplicate keypoints ...')
 
-        print(f'{p}:\t - keypoints found in octave {p} : {len(found_keypoints)}')
+      #  print(f'{p}:\t - keypoints found in octave {p} : {len(found_keypoints)}')
         sorted_keypoints = SIFT.checkForDuplicateKeypoints(found_keypoints, keypoints)
-        print(f'{p}:\t - new keypoints found in octave {p} : {len(sorted_keypoints)}\n')
+      #  print(f'{p}:\t - new keypoints found in octave {p} : {len(sorted_keypoints)}\n')
         #SIFT.resizeKeypoints(sorted_keypoints,scale_factor)
         keypoints.extend(SIFT.makeKeypointDescriptors(sorted_keypoints, Gaussian_images))
 
@@ -339,13 +426,12 @@ def computeKeypointsWithDescriptorsFromImage(greyscale_input_image, slice_start,
 
 def testGuassian():
     # Picture keypoints
-    inputPicture = cv.imread('Images/candlelightsOnVaryingBackground.jpg')
+    inputPicture = cv.imread('TestInput/candlelightsOnVaryingBackground.jpg')
     greyscaleInput = makeGrayscale(inputPicture.copy())
     print(f'Finding keypoints in scene image:')
     input_picture_keypoints = computeKeypointsWithDescriptorsFromImage(greyscaleInput)
 
     # User area keypoints
-    inputPicture_user = cv.imread('Images/redCandleCutoutVaryingBackground_large.jpg')
     greyscaleInput_user = makeGrayscale(inputPicture_user.copy())
     print(f'Finding keypoints in marked area:')
     marked_area_keypoints = computeKeypointsWithDescriptorsFromImage(greyscaleInput_user)
@@ -455,34 +541,9 @@ def testMatching(input_scene, marked_area_start, marked_area_end):
     cv.imshow('OUR Marked keypoints', input_scene)
 
 
-def compareDescriptors():
-    # User area keypoints
-    inputPicture_user = cv.imread('Images/redCandleCutoutVaryingBackground_large.jpg')
-    greyscaleInput_user = makeGrayscale(inputPicture_user.copy())
-    print(f'Finding keypoints in marked area:')
-    marked_area_keypoints = computeKeypointsWithDescriptorsFromImage(greyscaleInput_user)
-
-    y1 = 90
-    y2 = 100
-    x1 = 70
-    x2 = 90
-
-    for keypoint in marked_area_keypoints:
-        if y1 < keypoint.coordinates[0] < y2 and x1 < keypoint.coordinates[1] < x2:
-            print('our descriptor')
-            print(keypoint)
-
-    sift = cv.SIFT_create()
-    marked_area_keypoints, marked_descriptors = sift.detectAndCompute(greyscaleInput_user, None)
-    for user_descriptor, user_keypoint in zip(marked_descriptors, marked_area_keypoints):
-        if y1 < user_keypoint.pt[1] < y2 and x1 < user_keypoint.pt[0] < x2:
-            print('sift descriptor')
-            print(user_descriptor)
-
-
 def testMatchingOpenCV(marked_area_start, marked_area_end):
     # Picture keypoints
-    input_pic = cv.imread('Images/candlelightsOnVaryingBackground.jpg')
+    input_pic = cv.imread('TestInput/candlelightsOnVaryingBackground.jpg')
     input_pic = cv.resize(input_pic, (0, 0), fx=2, fy=2)
     greyscale_scene = makeGrayscale(input_pic.copy())
 
@@ -548,38 +609,27 @@ def openCVImplementation(image,slice_start,slice_end):
 if __name__ == "__main__":
     print(f'~~~ STARTING TIMER ~~~')
     startTime = time.time()
-
-    # fyrfadslys.jpg
-    # y1 = 217
-    # y2 = 274
-    # x1 = 196
-    # x2 = 250
-    hvid_lys1 = [(217, 196), (274, 250)]
-    hvid_lys2 = [(174, 328), (234, 387)]
-
-    # candlelightsOnVaryingBackground.jpg
-    # vary_lys = [(y1,x1),(y2,x2)]
-    vary_lys1 = [(250, 544), (357, 649)]
-    vary_lys2 = [(296, 393), (404, 497)]
-    vary_lys3 = [(395, 579), (499, 687)]
-    vary_lys4 = [(521, 409), (624, 508)]
-    vary_lys5 = [(552, 70), (655, 174)]
-
-    # coins:
-    coin1 = [(205, 135), (296, 231)]
-
-    input_scene = cv.imread('Images/candlelightsOnVaryingBackground.jpg')
+    input_directory = r"C:\Users\FrederikDesktop\Documents\GitHub\P3-Project-Counting-With-IP\PythonForCounting\TestInput"
+    input_scenes = []
+    input_names = []
+    input_slices =[[(296, 393), (404, 497)],[(234,285),(328,384)],[(174, 328), (234, 387)]]
+    for file in os.listdir(input_directory):
+        if file.endswith(".jpg"):
+            input_scenes.append(cv.imread(input_directory+r"\\"+file))
+            input_names.append(file)
+    #input_scene = cv.imread('TestInput/candlelightsOnVaryingBackground.jpg')
     #openCVImplementation(input_scene69, vary_lys2[0], vary_lys2[1])
-    main(input_scene, vary_lys2[0], vary_lys2[1])
+    #main(input_scene,"test.jpg", vary_lys2[0], vary_lys2[1], color_hist_threshold=950)
+    #mainCV(input_scene, "test.jpg", vary_lys2[0], vary_lys2[1], color_hist_threshold=950)
+    for input_scene, input_name, input_slice in zip(input_scenes, input_names, input_slices):
+        main(input_scene, input_name, input_slice[0], input_slice[1], color_hist_threshold=950)
+        mainCV(input_scene, input_name, input_slice[0], input_slice[1], color_hist_threshold=950)
     # testGuassian()
     # testMaxima()
     # testSift()
     # testMatchingOpenCV()
     #testMatching(input_scene69, vary_lys2[0], vary_lys2[1])
     #testMatchingOpenCV(vary_lys2[0], vary_lys2[1])
-    # compareDescriptors()
 
 
     print(f'~~~ TIMER ENDED: TOTAL TIME = {time.time() - startTime} s ~~~')
-    cv.waitKey(0)
-    cv.destroyAllWindows()

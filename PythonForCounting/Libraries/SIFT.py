@@ -420,8 +420,8 @@ def makeKeypointDescriptors(keypoints, Gaussian_images, num_bins=8, num_windows=
     keypoints_with_descriptors = []
     keypoints_outside_image = 0
 
-    if len(keypoints) != 0:
-        print(f'image: {Gaussian_images[1].shape}, sigma: {keypoints[0].size_sigma}, radius: {np.sqrt(2 * (int(keypoints[0].size_sigma*2)**2))}')
+    #if len(keypoints) != 0:
+        #print(f'image: {Gaussian_images[1].shape}, sigma: {keypoints[0].size_sigma}, radius: {np.sqrt(2 * (int(keypoints[0].size_sigma*2)**2))}')
 
     for keypoint in keypoints:
         # Til at holde vores gradients opretter vi et 3d array. De første to pladser svarer til indicerne på vores 16
@@ -564,7 +564,7 @@ def makeKeypointDescriptors(keypoints, Gaussian_images, num_bins=8, num_windows=
     return keypoints_with_descriptors
 
 
-def matchDescriptorsWithKeypointFromSlice(object_keypoints: [KeyPoint], data_keypoints: [KeyPoint], distance_ratio_treshold=1.5):
+def matchDescriptorsWithKeypointFromSlice(object_keypoints: [KeyPoint], data_keypoints: [KeyPoint], distance_ratio_treshold=1.4):
     """
     Description
     """
@@ -584,13 +584,46 @@ def matchDescriptorsWithKeypointFromSlice(object_keypoints: [KeyPoint], data_key
     for object_keypoint_dists, object_keypoint_matches in zip(best_match_dist, best_match_list):
         if len(object_keypoint_dists) == 0:
             continue
-        min_value = min(i for i in object_keypoint_dists if i > 0)
+        elif len(object_keypoint_dists) == 1:
+            min_value = object_keypoint_dists[0]
+        else:
+            min_value = min(i for i in object_keypoint_dists if i > 0)
         indices = np.where(object_keypoint_dists < min_value*distance_ratio_treshold)[0]
         output_match_list.append(np.array(object_keypoint_matches)[indices])
 
     return output_match_list
 
+def matchOpenCVDescriptorsWithKeypointFromSlice(object_keypoints, object_descriptors, data_keypoints, data_descriptors, distance_ratio_treshold=1.4):
+    """
+    Description
+    """
+    best_match_keypoints = [[] for _ in range(len(object_keypoints))]
+    best_match_descriptors = [[] for _ in range(len(object_keypoints))]
+    best_match_dist = [[]for _ in range(len(object_keypoints))]
+    for data_keypoint, data_descriptor in zip(data_keypoints,data_descriptors):
+        dist_list = []
+        for object_keypoint, object_descriptor in zip(object_keypoints, object_descriptors):
+            dist = np.linalg.norm(object_descriptor - data_descriptor)
+            dist_list.append(dist)
+        if len(dist_list) == 0:
+            continue
+        best_match_keypoints[dist_list.index((min(dist_list)))].append(data_keypoint)
+        best_match_descriptors[dist_list.index((min(dist_list)))].append(data_descriptor)
+        best_match_dist[dist_list.index((min(dist_list)))].append(min(dist_list))
 
+    output_match_keypoints = []
+    output_match_descriptors = []
+    for object_keypoint_dists, object_keypoint_matches, object_descriptor_matches in zip(best_match_dist, best_match_keypoints, best_match_descriptors):
+        if len(object_keypoint_dists) == 0:
+            continue
+        elif len(object_keypoint_dists) == 1:
+            min_value = object_keypoint_dists[0]
+        else:
+            min_value = min(i for i in object_keypoint_dists if i > 0)
+        indices = np.where(object_keypoint_dists < min_value*distance_ratio_treshold)[0]
+        output_match_keypoints.append(np.array(object_keypoint_matches)[indices])
+        output_match_descriptors.append(np.array(object_descriptor_matches)[indices])
+    return output_match_keypoints, output_match_descriptors
 def validateKeypoints(slice_keypoints: [KeyPoint], scene_keypoints: [KeyPoint]):
     validated_keypoints = []
     for slice_keypoint in slice_keypoints:
@@ -598,7 +631,14 @@ def validateKeypoints(slice_keypoints: [KeyPoint], scene_keypoints: [KeyPoint]):
             validated_keypoints.append(slice_keypoint)
 
     return validated_keypoints
-
+def validateOpenCVKeypoints(slice_keypoints, slice_descriptors, scene_keypoints, scene_descriptors):
+    validated_keypoints = []
+    validated_descriptors = []
+    for slice_keypoint, slice_descriptor in zip(slice_keypoints,slice_descriptors):
+        if not kNearestNeighborOpenCV(slice_descriptors,scene_descriptors) == None:
+            validated_keypoints.append(slice_keypoint)
+            validated_descriptors.append(slice_descriptor)
+    return validated_keypoints, validated_descriptors
 
 def kNearestNeighbor(keypoint: KeyPoint, data: [KeyPoint], kNN_treshold=0.8):
     nearest_neighbors = []
@@ -612,6 +652,26 @@ def kNearestNeighbor(keypoint: KeyPoint, data: [KeyPoint], kNN_treshold=0.8):
         elif max(nearest_neighbors_dist) > dist:
             nearest_neighbors_dist[nearest_neighbors_dist.index(max(nearest_neighbors_dist))] = dist
             nearest_neighbors[nearest_neighbors_dist.index(max(nearest_neighbors_dist))] = keypoint
+
+    if min(nearest_neighbors_dist) == 0:
+        return nearest_neighbors[nearest_neighbors_dist.index(min(nearest_neighbors_dist))]
+    elif min(nearest_neighbors_dist) >= max(nearest_neighbors_dist) * kNN_treshold:
+        return nearest_neighbors[nearest_neighbors_dist.index(min(nearest_neighbors_dist))]
+    else:
+        return None
+
+def kNearestNeighborOpenCV(descriptor, scene_descriptors, kNN_treshold=0.8):
+    nearest_neighbors = []
+    nearest_neighbors_dist = []
+
+    for data_keypoint in scene_descriptors:
+        dist = np.linalg.norm(data_keypoint - descriptor)
+        if len(nearest_neighbors_dist) != 2:
+            nearest_neighbors_dist.append(dist)
+            nearest_neighbors.append(descriptor)
+        elif max(nearest_neighbors_dist) > dist:
+            nearest_neighbors_dist[nearest_neighbors_dist.index(max(nearest_neighbors_dist))] = dist
+            nearest_neighbors[nearest_neighbors_dist.index(max(nearest_neighbors_dist))] = descriptor
 
     if min(nearest_neighbors_dist) == 0:
         return nearest_neighbors[nearest_neighbors_dist.index(min(nearest_neighbors_dist))]
