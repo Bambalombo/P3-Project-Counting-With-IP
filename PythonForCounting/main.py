@@ -153,6 +153,7 @@ def main(input_scene, input_file_name, slice_start, slice_end, scale_ratio=2, st
     # definere vinduestørrelsen, tænker den skulle laves ud fra inputbilledet
     # vores liste over hits
     hits = []
+
     stepsize = min(window_size)/5
     # looper over alle billeder i billedpyramiden, man behøver ikke at lave pyramiden først, den kan laves på samme linje hernede
     for i, image in enumerate(image_pyramid):

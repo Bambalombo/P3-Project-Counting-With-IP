@@ -1,4 +1,3 @@
-import cv2 as cv
 import numpy as np
 from cv2 import KeyPoint
 from . import SIFT
@@ -146,3 +145,7 @@ def discardKeypointsOutsideMarkedAreaOpenCV(descriptors, keypoints, starting_coo
             new_descriptors.append(descriptor)
 
     return new_keypoints, new_descriptors
+
+def makeGrayscale(image):
+    output = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
+    return output
