@@ -138,7 +138,7 @@ def main(input_scene, input_file_name, slice_start, slice_end, scale_ratio=2, st
     start_time = time.time()
     user_slice = output_scene[slice_start[0]:slice_end[0],slice_start[1]: slice_end[1]]
     slice_feature_vector = fm.calculateImageHistogramBinVector(user_slice, 16, 500)
-    window_size = (user_slice.shape[0], user_slice.shape[1])
+    window_size = (int(user_slice.shape[0]/2), int(user_slice.shape[1]/2))
 
     greyscale_scene = makeGrayscale(input_scene.copy())
     keypoints_scene, keypoints_slice = computeKeypointsWithDescriptorsFromImage(greyscale_scene, slice_start, slice_end, scale_factor=scale_ratio, standard_deviation=standard_deviation)
@@ -176,7 +176,7 @@ def main(input_scene, input_file_name, slice_start, slice_end, scale_ratio=2, st
                         keypoints_in_window += 1
 
             if len(validated_slice_keypoints) != 0:
-                if keypoints_in_window >= ((0.25/image_scale)*len(validated_slice_keypoints)) and hist_dist < color_hist_threshold:
+                if keypoints_in_window >= ((0.25/(image_scale*scale_ratio))*len(validated_slice_keypoints)) and hist_dist < color_hist_threshold:
                     hits.append([hist_dist,
                              [x * (scale_ratio ** i), x * (scale_ratio ** i) + (window.shape[1] * (scale_ratio ** i)),
                               y * (scale_ratio ** i), y * (scale_ratio ** i) + (window.shape[0] * (scale_ratio ** i))]])
@@ -208,7 +208,7 @@ def mainCV(input_scene, input_file_name, slice_start, slice_end, scale_ratio=2, 
     start_time = time.time()
     user_slice = output_scene[slice_start[0]:slice_end[0],slice_start[1]: slice_end[1]]
     slice_feature_vector = fm.calculateImageHistogramBinVector(user_slice, 16, 500)
-    window_size = (user_slice.shape[0], user_slice.shape[1])
+    window_size = (int(user_slice.shape[0]/2), int(user_slice.shape[1]/2))
 
     greyscale_scene = makeGrayscale(input_scene.copy())
     sift = cv.SIFT_create()
@@ -252,7 +252,7 @@ def mainCV(input_scene, input_file_name, slice_start, slice_end, scale_ratio=2, 
                         keypoints_in_window += 1
 
             if len(validated_slice_keypoints) != 0:
-                if keypoints_in_window >= ((0.25/image_scale)*len(validated_slice_keypoints)) and hist_dist < color_hist_threshold:
+                if keypoints_in_window >= ((0.25/(image_scale*scale_ratio))*len(validated_slice_keypoints)) and hist_dist < color_hist_threshold:
                     hits.append([hist_dist,
                                  [x * (scale_ratio ** i), x * (scale_ratio ** i) + (window.shape[1] * (scale_ratio ** i)),
                                   y * (scale_ratio ** i), y * (scale_ratio ** i) + (window.shape[0] * (scale_ratio ** i))]])
@@ -476,7 +476,7 @@ if __name__ == "__main__":
     input_directory = r"TestInput"
     input_images = []
     input_names = []
-    input_slices =[[(581,477),(642,950)],[(296, 393), (404, 497)], [(234, 285), (328, 384)],[(317,827),(640,1006)],[(589,379),(864,578)],[(329,497),(405,577)], [(174, 328), (234, 387)],[(505,441),(580,524)],[(271,305),(297,328)],[(698,348),(735,378)],[(224,310),(311,366)],[(390,216),(474,355)],[(195,227),(344,396)],[(650,297),(677,328)],[(238,214),(275,260)],[(435,530),(527,872)],[(554,26),(712,120)],[(494,176),(558,339)],[(480,340),(540,407)],[(280,597),(636,790)],[(416,202),(559,344)],[(402,323),(479,450)],[(257,521),(552,700)],[(260,550),(525,874)],[(397,278),(422,311)],[(322,346),(392,420)],[(497,272),(589,333)],[(451,616),(659,856)],[(295,196),(381,280)],[(371,178),(509,323)],[(335,93),(522,282)], [(953, 1089), (1426, 1410)],[(421,742),(650,878)],[(336,290),(583,317)]]
+    input_slices =[[(581,477),(642,950)],[(296, 393), (404, 497)], [(234, 285), (328, 384)],[(317,827),(640,1006)],[(589,379),(864,578)],[(329,497),(405,577)], [(174, 328), (234, 387)],[(505,441),(580,524)],[(271,305),(297,328)],[(698,348),(735,378)],[(224,310),(311,366)],[(390,216),(474,355)],[(195,227),(344,396)],[(650,297),(677,328)],[(238,214),(275,260)],[(435,530),(527,872)],[(554,26),(712,120)],[(494,176),(558,339)],[(480,340),(540,407)],[(280,597),(636,790)],[(416,202),(559,344)],[(402,323),(479,450)],[(257,521),(552,700)],[(260,550),(525,874)],[(397,278),(422,311)],[(322,346),(392,420)],[(497,272),(589,333)],[(451,616),(659,856)],[(295,196),(381,280)],[(371,178),(509,323)],[(335,93),(522,282)], [(953, 1089), (1426, 1410)],[(421,742),(650,878)],[(336,290),(583,317)],[(1342,1831),(1627,2127)],[(562,2518),(845,2821)],[(1360,1681),(1951,2294)]]
 
     for file in os.listdir(input_directory):
         if file.endswith(".jpg"):
