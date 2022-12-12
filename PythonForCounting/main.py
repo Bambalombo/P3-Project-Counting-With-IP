@@ -1,3 +1,5 @@
+import random
+
 import cv2 as cv
 import numpy as np
 from Libraries import FeatureMatching as fm
@@ -138,7 +140,7 @@ def main(input_scene, input_file_name, slice_start, slice_end, scale_ratio=2, st
     start_time = time.time()
     user_slice = output_scene[slice_start[0]:slice_end[0],slice_start[1]: slice_end[1]]
     slice_feature_vector = fm.calculateImageHistogramBinVector(user_slice, 16, 500)
-    window_size = (int(user_slice.shape[0]/2), int(user_slice.shape[1]/2))
+    window_size = (user_slice.shape[0], user_slice.shape[1])
 
     greyscale_scene = makeGrayscale(input_scene.copy())
     keypoints_scene, keypoints_slice = computeKeypointsWithDescriptorsFromImage(greyscale_scene, slice_start, slice_end, scale_factor=scale_ratio, standard_deviation=standard_deviation)
@@ -176,7 +178,7 @@ def main(input_scene, input_file_name, slice_start, slice_end, scale_ratio=2, st
                         keypoints_in_window += 1
 
             if len(validated_slice_keypoints) != 0:
-                if keypoints_in_window >= ((0.25/(image_scale*scale_ratio))*len(validated_slice_keypoints)) and hist_dist < color_hist_threshold:
+                if keypoints_in_window >= ((0.25/image_scale)*len(validated_slice_keypoints)) and hist_dist < color_hist_threshold:
                     hits.append([hist_dist,
                              [x * (scale_ratio ** i), x * (scale_ratio ** i) + (window.shape[1] * (scale_ratio ** i)),
                               y * (scale_ratio ** i), y * (scale_ratio ** i) + (window.shape[0] * (scale_ratio ** i))]])
@@ -208,7 +210,7 @@ def mainCV(input_scene, input_file_name, slice_start, slice_end, scale_ratio=2, 
     start_time = time.time()
     user_slice = output_scene[slice_start[0]:slice_end[0],slice_start[1]: slice_end[1]]
     slice_feature_vector = fm.calculateImageHistogramBinVector(user_slice, 16, 500)
-    window_size = (int(user_slice.shape[0]/2), int(user_slice.shape[1]/2))
+    window_size = (user_slice.shape[0], user_slice.shape[1])
 
     greyscale_scene = makeGrayscale(input_scene.copy())
     sift = cv.SIFT_create()
@@ -252,7 +254,7 @@ def mainCV(input_scene, input_file_name, slice_start, slice_end, scale_ratio=2, 
                         keypoints_in_window += 1
 
             if len(validated_slice_keypoints) != 0:
-                if keypoints_in_window >= ((0.25/(image_scale*scale_ratio))*len(validated_slice_keypoints)) and hist_dist < color_hist_threshold:
+                if keypoints_in_window >= ((0.25/image_scale)*len(validated_slice_keypoints)) and hist_dist < color_hist_threshold:
                     hits.append([hist_dist,
                                  [x * (scale_ratio ** i), x * (scale_ratio ** i) + (window.shape[1] * (scale_ratio ** i)),
                                   y * (scale_ratio ** i), y * (scale_ratio ** i) + (window.shape[0] * (scale_ratio ** i))]])
@@ -487,7 +489,9 @@ if __name__ == "__main__":
         input_images[i], input_slices[i] = ensureInputPictureIsCorrectSize(in_image, in_slice)
 
     for i, (input_scene, input_name, input_slice) in enumerate(zip(input_images, input_names, input_slices)):
-        print(f'Computing image: {i+1} of {len(input_images)}')
+        jule_hygge = ['🎅', '🎄', '🤶', '💝', '🎇']
+        random_index = random.randrange(0,len(jule_hygge))
+        print(f'Computing image: {i+1} of {len(input_images)} {jule_hygge[random_index]}')
         main(input_scene, input_name, input_slice[0], input_slice[1], color_hist_threshold=950)
         mainCV(input_scene, input_name, input_slice[0], input_slice[1], color_hist_threshold=950)
 
