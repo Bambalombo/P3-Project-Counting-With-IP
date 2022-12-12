@@ -2,6 +2,7 @@ import numpy as np
 import cv2 as cv
 from matplotlib import pyplot as plt
 
+
 def getColorHistogramFromSlice(slice):
     outputHistograms = []
     outputBinEdges = []
@@ -10,6 +11,7 @@ def getColorHistogramFromSlice(slice):
         outputHistograms.append(histogram)
         outputBinEdges.append(binEdges)
     return outputHistograms, outputBinEdges
+
 
 def calculateIntensity(pixel):
     """
