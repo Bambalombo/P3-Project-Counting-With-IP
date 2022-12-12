@@ -176,7 +176,7 @@ def main(input_scene, input_file_name, slice_start, slice_end, scale_ratio=2, st
                         keypoints_in_window += 1
 
             if len(validated_slice_keypoints) != 0:
-                if keypoints_in_window >= (0.25*len(validated_slice_keypoints)) and hist_dist < color_hist_threshold:
+                if keypoints_in_window >= ((0.25/image_scale)*len(validated_slice_keypoints)) and hist_dist < color_hist_threshold:
                     hits.append([hist_dist,
                              [x * (scale_ratio ** i), x * (scale_ratio ** i) + (window.shape[1] * (scale_ratio ** i)),
                               y * (scale_ratio ** i), y * (scale_ratio ** i) + (window.shape[0] * (scale_ratio ** i))]])
@@ -252,7 +252,7 @@ def mainCV(input_scene, input_file_name, slice_start, slice_end, scale_ratio=2, 
                         keypoints_in_window += 1
 
             if len(validated_slice_keypoints) != 0:
-                if keypoints_in_window >= (0.25*len(validated_slice_keypoints)) and hist_dist < color_hist_threshold:
+                if keypoints_in_window >= ((0.25/image_scale)*len(validated_slice_keypoints)) and hist_dist < color_hist_threshold:
                     hits.append([hist_dist,
                                  [x * (scale_ratio ** i), x * (scale_ratio ** i) + (window.shape[1] * (scale_ratio ** i)),
                                   y * (scale_ratio ** i), y * (scale_ratio ** i) + (window.shape[0] * (scale_ratio ** i))]])
