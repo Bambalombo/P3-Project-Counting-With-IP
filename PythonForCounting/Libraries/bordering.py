@@ -22,6 +22,7 @@ def addborder_reflect(input_image, kernel_size):
     """
     This is a nice ass method
     """
+
     radius = int((kernel_size - 1) / 2) # kernel radius
 
     # Check to see if the image is 2D or 3D and creates shape attributes accordingly
@@ -38,7 +39,9 @@ def addborder_reflect(input_image, kernel_size):
         output = np.ones((input_height + (radius * 2), input_width + (radius * 2)), dtype=np.uint8)*255
         output_height, output_width = output.shape
 
-    cv.imwrite("input_image.png",input_image)
+    #cv.imwrite("input_image.png",input_image)
+
+
 
     if radius == 0:
         output = input_image
