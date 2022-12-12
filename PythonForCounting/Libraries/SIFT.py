@@ -564,7 +564,7 @@ def makeKeypointDescriptors(keypoints, Gaussian_images, num_bins=8, num_windows=
     return keypoints_with_descriptors
 
 
-def matchDescriptorsWithKeypointFromSlice(object_keypoints: [KeyPoint], data_keypoints: [KeyPoint], distance_ratio_treshold=1.2):
+def matchDescriptorsWithKeypointFromSlice(object_keypoints: [KeyPoint], data_keypoints: [KeyPoint], distance_ratio_treshold=1.6):
     """
     Description
     """
@@ -593,7 +593,7 @@ def matchDescriptorsWithKeypointFromSlice(object_keypoints: [KeyPoint], data_key
 
     return output_match_list
 
-def matchOpenCVDescriptorsWithKeypointFromSlice(object_keypoints, object_descriptors, data_keypoints, data_descriptors, distance_ratio_treshold=1.2):
+def matchOpenCVDescriptorsWithKeypointFromSlice(object_keypoints, object_descriptors, data_keypoints, data_descriptors, distance_ratio_treshold=1.6):
     """
     Description
     """
