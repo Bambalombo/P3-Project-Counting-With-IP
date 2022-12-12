@@ -163,8 +163,8 @@ def main(input_scene, input_file_name, slice_start, slice_end, scale_ratio=2, st
         for (y, x, window) in windowSlider(image, window_size, int(stepsize)):
             # Vinduet kan godt blive lavet halvt uden for billedet, hvis dette ikke er ønsket kan vi skippe den
             # beregning i loopet men det er lige en diskussion vi skal have i gruppen
-            if window.shape[0] != window_size[0] or window.shape[1] != window_size[1]:
-                continue
+            #if window.shape[0] != window_size[0] or window.shape[1] != window_size[1]:
+             #   continue
             # Lav vores image processing her
             current_window_vector = fm.calculateImageHistogramBinVector(window, 16, 500)
             hist_dist = fm.calculateEuclidianDistance(slice_feature_vector, current_window_vector)
@@ -239,8 +239,8 @@ def mainCV(input_scene, input_file_name, slice_start, slice_end, scale_ratio=2, 
         for (y, x, window) in windowSlider(image, window_size, int(stepsize)):
             # Vinduet kan godt blive lavet halvt uden for billedet, hvis dette ikke er ønsket kan vi skippe den
             # beregning i loopet men det er lige en diskussion vi skal have i gruppen
-            if window.shape[0] != window_size[0] or window.shape[1] != window_size[1]:
-                continue
+            #if window.shape[0] != window_size[0] or window.shape[1] != window_size[1]:
+             #   continue
             # Lav vores image processing her
             current_window_vector = fm.calculateImageHistogramBinVector(window, 16, 500)
             hist_dist = fm.calculateEuclidianDistance(slice_feature_vector, current_window_vector)
