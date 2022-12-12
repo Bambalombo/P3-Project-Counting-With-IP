@@ -1,0 +1,6 @@
+Keypoints in scene overall: 7494 
+Keypoints in slice (not validated): 458
+validated keypoints from slice: 458 
+total keypoints mathching validated slice keypoints in image: 7375
+Counted objects: 11
+Computing time: 466.97608494758606 s
