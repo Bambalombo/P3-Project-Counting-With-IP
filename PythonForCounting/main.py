@@ -22,7 +22,6 @@ def makeImagePyramid(starting_image, scale, min_width):
         current_image = cv.resize(current_image,
                                   (int(current_image.shape[1] / scale), int(current_image.shape[0] / scale)))
 
-
 def windowSlider(image, window_size: tuple, step_size):
     """
     Returnere en slicegenerator, som genererer et slice for hvert step igennem et billede, looper man over
@@ -33,7 +32,6 @@ def windowSlider(image, window_size: tuple, step_size):
     for y in range(0, image.shape[0], step_size):
         for x in range(0, image.shape[1], step_size):
             yield y, x, image[y:y + window_size[0], x:x + window_size[1]]
-
 
 def makeGrayscale(img):
     """
@@ -474,7 +472,12 @@ def ensureInputPictureIsCorrectSize(scene, slice, max_size=1000):
 if __name__ == "__main__":
     print(f'~~~ STARTING TIMER ~~~')
     startTime = time.time()
-
+    parent_dir = r"TestOutput\\"
+    os.mkdir(parent_dir)
+    child_dir1 = r"TestOutput\OpenCV\\"
+    child_dir2 = r"TestOutput\Our\\"
+    os.mkdir(child_dir1)
+    os.mkdir(child_dir2)
     input_directory = r"TestInput"
     input_images = []
     input_names = []
