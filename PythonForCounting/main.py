@@ -179,6 +179,9 @@ for image in imagePyramid:
             hit_count += 1
             print(f'{y,x} {euc_dist}')
             hit_img = window
+            print(x,y)
+            print(x+hit_img.shape[1], y+hit_img.shape[0])
+            cv.rectangle(inputPicture, (x,y), (x+hit_img.shape[1], y+hit_img.shape[0]), (0,255,0), 1)
             cv.putText(hit_img, str(euc_dist), (10, 10), cv.FONT_HERSHEY_PLAIN, 1, (0, 0, 255))
             cv.imshow(f'hit: {y,x}',window)
 
