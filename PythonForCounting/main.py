@@ -155,8 +155,10 @@ def temp_test():
     cv.destroyAllWindows()
 
 
-inputPicture = cv.imread('Images/fyrfadslys.jpg')
-userSlice = cv.imread('Images/red_candle_cutout.jpg')
+inputPicture = cv.imread('Images/WcoinsOnGameboard.jpg')
+userSlice = cv.imread('Images/CoinCutout.jpg')
+inputPicture = cv.resize(inputPicture, (0,0),fx=0.3, fy=0.3)
+userSlice = cv.resize(userSlice, (0,0),fx=0.3, fy=0.3)
 
 sliceFeatureVector = fm.calculateImageHistogramBinVector(userSlice,16,500)
 
@@ -165,7 +167,7 @@ imagePyramid  = makeImagePyramide(inputPicture, 1.5, 150)
 windowSize = (int(userSlice.shape[0]), int(userSlice.shape[1]))
 #looper over alle billeder i billedpyramiden, man behøver ikke at lave pyramiden først, den kan laves på samme linje hernede
 
-for image in imagePyramid:
+for i, image in enumerate(imagePyramid):
     hit_count = 0
     #looper over alle vinduerne i billedet
     for (y,x,window) in windowSlider(image,windowSize,int(windowSize[0]/3)):
@@ -177,20 +179,20 @@ for image in imagePyramid:
         euc_dist = fm.calculateEuclidianDistance(sliceFeatureVector, currentWindowVector)
         if (euc_dist < 1000):
             hit_count += 1
-            print(f'{y,x} {euc_dist}')
+            #print(f'{y,x} {euc_dist}')
             hit_img = window
-            print(x,y)
-            print(x+hit_img.shape[1], y+hit_img.shape[0])
-            cv.rectangle(inputPicture, (x,y), (x+hit_img.shape[1], y+hit_img.shape[0]), (0,255,0), 1)
-            cv.putText(hit_img, str(euc_dist), (10, 10), cv.FONT_HERSHEY_PLAIN, 1, (0, 0, 255))
-            cv.imshow(f'hit: {y,x}',window)
+            #print(x,y)
+            #print(x+hit_img.shape[1], y+hit_img.shape[0])
+            cv.rectangle(inputPicture, (int(round(x*(1.5**(i)))),int(round(y*(1.5**(i))))), (int((x*(1.5**(i)))+hit_img.shape[1]*(1.5**(i))), int(y*(1.5**(i))+hit_img.shape[0]*(1.5**(i)))), (0,255,0), 3)
+            #cv.imshow(f'hit: {y,x}',window)
 
         #tegner en rektangel der går hen over billedet for illustrating purposes
         clone = image.copy()
         cv.rectangle(clone, (x, y), (x + windowSize[1], y + windowSize[0]), (0, 255, 0), 2)
-        cv.imshow("window", clone)
+        cv.imshow("window", inputPicture)
         cv.waitKey(1)
     print(f'found: {hit_count} hits')
 
+cv.imshow('final image', inputPicture)
 cv.waitKey(0)
 cv.destroyAllWindows()
