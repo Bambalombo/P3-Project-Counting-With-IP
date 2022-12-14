@@ -155,12 +155,87 @@ def temp_test():
     cv.destroyAllWindows()
 
 
-inputPicture = cv.imread('Images/WcoinsOnGameboard.jpg')
-userSlice = cv.imread('Images/CoinCutout.jpg')
-inputPicture = cv.resize(inputPicture, (0,0),fx=0.3, fy=0.3)
-userSlice = cv.resize(userSlice, (0,0),fx=0.3, fy=0.3)
+def nonMaximumSuppression(outlines, threshold, scores=None):
+    boxes = np.array(outlines).astype("float")
+    if not outlines:
+        return []
+    # vores liste over alle hits der er tilbage efter supression
+    real_hits = []
+
+    # vores bounding box koordinater
+    x_left = boxes[:, 0]
+    x_right = boxes[:, 1]
+    y_left = boxes[:, 2]
+    y_right = boxes[:, 3]
+
+    # beregner arealet af alle vores boundingboxes og gemmer dem
+    area_of_bounding_boxes = (x_right - x_left + 1) * (y_right - y_left + 1)
+    different_areas = set(area_of_bounding_boxes)
+    # laver et midlertidigt array som vi sortere
+    # enten efter nederste højre boundingbox, eller efter score
+    # det er midlertidigt, så vi kan bruge det som kondition i vores whileloop,
+    # mens vi fjerne alle boundingboxes
+
+    temp_sorting_array = y_left
+    if scores is not None:
+        temp_sorting_array = scores
+
+    # argsort giver os et array af indexer med den laveste som index på plads nr. 0,
+    # men vi vil gerne have det omvendt så det er højeste index som 0, derfor omvender vi arrayet
+    temp_sorting_array = np.argsort(temp_sorting_array, kind='stable')[::-1]
+
+    # mens vi ikke har kontrolleret alle boundingboxes
+    while len(temp_sorting_array) > 0:
+        last_temp_index = len(temp_sorting_array) - 1
+        ndi = temp_sorting_array[last_temp_index]
+        real_hits.append(ndi)
+
+        # Vi finder et array af de mindste og største x,y koordinator, for at finde alle vores overlap
+        # af vores vinduer
+        overlap_left_x = np.maximum(x_left[ndi], x_left[temp_sorting_array[:last_temp_index]])
+        overlap_right_x = np.minimum(x_right[ndi], x_right[temp_sorting_array[:last_temp_index]])
+        overlap_bottom_y = np.maximum(y_left[ndi], y_left[temp_sorting_array[:last_temp_index]])
+        overlap_top_y = np.minimum(y_right[ndi], y_right[temp_sorting_array[:last_temp_index]])
+
+        # så laver vi et array som holder alle bredder og højder på vores overlaps
+        # der ligges 1 til for at få den rent faktiske bredde, da man trækker pixelpositioner fra hinanden
+        overlap_widths = np.maximum(0, overlap_right_x - overlap_left_x + 1)
+        overlap_heights = np.maximum(0, overlap_top_y - overlap_bottom_y + 1)
+
+        # arealet af alle de overlappende områder beregnes og divideres med det oprindelige array af arealer
+        overlap_area = overlap_widths * overlap_heights
+        # for at få hvor meget areal der er overlap, mod hvor meget areal der rent faktisk var i boundingboxen
+        overlap_matches = []
+        for i in overlap_area:
+            if i in different_areas:
+                overlap_matches.append(True)
+            else:
+                overlap_matches.append(False)
+        overlap_matches = np.array(overlap_matches, dtype=bool)
+        overlap_area_ratio = np.where(overlap_matches, 1,
+                                    overlap_area / area_of_bounding_boxes[temp_sorting_array[:last_temp_index]])
+        # overlapAreaRatio = np.where(overlapArea in areaOfBoundingBoxes[tempSortingArray[:lastTempIndex]], 1,overlapArea / areaOfBoundingBoxes[tempSortingArray[:lastTempIndex]])
+        # overlapAreaRatio = overlapArea / areaOfBoundingBoxes[tempSortingArray[:lastTempIndex]]
+
+        # slet alle indexes hvor overlapratio er større end threshold
+        temp_sorting_array = np.delete(temp_sorting_array,
+                                     np.concatenate(([last_temp_index], np.where(overlap_area_ratio > threshold)[0])))
+
+    # finder vores rigtigte outlines og scores or returnerer dem zippet
+    real_scores = np.array(scores)[real_hits]
+    real_outlines = boxes[real_hits].astype("int")
+    return real_scores, real_outlines
+
+
+inputPicture = cv.imread('Images/TestImage6.jpeg')
+userSlice = cv.imread('Images/TestImage6_slice.jpg')
+#inputPicture = cv.resize(inputPicture, (0,0),fx=0.3, fy=0.3)
+#userSlice = cv.resize(userSlice, (0,0),fx=0.3, fy=0.3)
 
 sliceFeatureVector = fm.calculateImageHistogramBinVector(userSlice,16,500)
+
+hit_coords = []
+hit_scores = []
 
 imagePyramid  = makeImagePyramide(inputPicture, 1.5, 150)
 #definere vinduestørrelsen, tænker den skulle laves ud fra inputbilledet
@@ -177,22 +252,39 @@ for i, image in enumerate(imagePyramid):
         #Lav vores image processing her
         currentWindowVector = fm.calculateImageHistogramBinVector(window, 16, 500)
         euc_dist = fm.calculateEuclidianDistance(sliceFeatureVector, currentWindowVector)
-        if (euc_dist < 1000):
+        if (euc_dist < 900):
+            hit_img = window
+
+            x1 = int(round(x*(1.5**(i))))
+            y1 = int(round(y*(1.5**(i))))
+            x2 = int((x*(1.5**(i)))+hit_img.shape[1]*(1.5**(i)))
+            y2 = int(y*(1.5**(i))+hit_img.shape[0]*(1.5**(i)))
+
+            coords = [x1,x2,y1,y2]
+            hit_coords.append(coords)
+            hit_scores.append(euc_dist)
+
             hit_count += 1
             #print(f'{y,x} {euc_dist}')
-            hit_img = window
             #print(x,y)
             #print(x+hit_img.shape[1], y+hit_img.shape[0])
-            cv.rectangle(inputPicture, (int(round(x*(1.5**(i)))),int(round(y*(1.5**(i))))), (int((x*(1.5**(i)))+hit_img.shape[1]*(1.5**(i))), int(y*(1.5**(i))+hit_img.shape[0]*(1.5**(i)))), (0,255,0), 3)
+            cv.rectangle(inputPicture, (x1, y1), (x2, y2), (0,255,50*i), 20)
             #cv.imshow(f'hit: {y,x}',window)
 
         #tegner en rektangel der går hen over billedet for illustrating purposes
         clone = image.copy()
-        cv.rectangle(clone, (x, y), (x + windowSize[1], y + windowSize[0]), (0, 255, 0), 2)
-        cv.imshow("window", inputPicture)
-        cv.waitKey(1)
+        cv.rectangle(clone, (x, y), (x + windowSize[1], y + windowSize[0]), (50*i, 255, int(50*i)), 2)
+        #cv.imshow("window", inputPicture)
+        #cv.waitKey(1)
     print(f'found: {hit_count} hits')
 
+#scores, outlines = nonMaximumSuppression(hit_coords,0.1, hit_scores)
+
+#for hit in outlines:
+#    x1, x2, y1, y2 = hit
+#    cv.rectangle(inputPicture, (x1, y1), (x2, y2), (0, 255, 0), 20)
+
+cv.imwrite('test_img6_no_nms.jpg',inputPicture)
 cv.imshow('final image', inputPicture)
 cv.waitKey(0)
 cv.destroyAllWindows()
