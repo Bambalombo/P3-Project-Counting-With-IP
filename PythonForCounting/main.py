@@ -474,7 +474,14 @@ def ensureInputPictureIsCorrectSize(scene, slice, max_size=1000):
 if __name__ == "__main__":
     print(f'~~~ STARTING TIMER ~~~')
     startTime = time.time()
-
+    # input_scene = cv.imread("TestInput/candlelightsOnVaryingBackground.jpg")
+    # greyscaleimage = makeGrayscale(input_scene.copy())
+    # keypoints =[]
+    # for p, image in enumerate(makeImagePyramid(greyscaleimage.astype("float32"), 2, 10)):
+    #     blurred, DoG = SIFT.differenceOfGaussian(image,1.6,2)
+    #     keypoints.extend(SIFT.defineKeyPointsFromPixelExtrema(blurred, DoG, p, 1.6,
+    #                                                            2))
+    # print(len(keypoints))
     input_directory = r"TestInput"
     input_images = []
     input_names = []
@@ -496,3 +503,5 @@ if __name__ == "__main__":
         mainCV(input_scene, input_name, input_slice[0], input_slice[1], color_hist_threshold=950)
 
     print(f'~~~ TIMER ENDED: TOTAL TIME = {time.time() - startTime} s ~~~')
+    cv.waitKey(0)
+    cv.destroyAllWindows()
