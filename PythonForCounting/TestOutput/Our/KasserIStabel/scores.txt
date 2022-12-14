@@ -3,4 +3,4 @@ Keypoints in slice (not validated): 3
 validated keypoints from slice: 3 
 total keypoints mathching validated slice keypoints in image: 56
 Counted objects: 9
-Computing time: 27.203965425491333 s
+Computing time: 25.64683508872986 s

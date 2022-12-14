@@ -389,7 +389,7 @@ def discardKeypointsOutsideMarkedAreaOpenCV(descriptors, keypoints: [KeyPoint], 
         if height < keypoint.pt[0] < height * 2 and width < keypoint.pt[1] < width * 2:
             new_keypoints.append(keypoint)
     return new_keypoints
-
+"""
 def testMatching(input_scene, marked_area_start, marked_area_end):
     # Picture keypoints
     input_scene = input_scene.copy()
@@ -401,9 +401,9 @@ def testMatching(input_scene, marked_area_start, marked_area_end):
         print("no keypoints found in marked area")
         return None
     for keypoint in slice_keypoints:
-        keypoint.computeKeypointPointersInMarkedImage((0, 0), (marked_area_end[0]-marked_area_start[0], marked_area_end[1] - marked_area_start[1]))
+        keypoint.computeKeypointPointersInMarkedImage(marked_area_start, marked_area_end)
 
-    matches = SIFT.matchDescriptors(slice_keypoints, scene_keypoints)
+    matches = SIFT.matchDescriptorsWithKeypointFromSlice(slice_keypoints, scene_keypoints)
     for ref_keypoint_index, scene_matches in enumerate(matches):
         for keypointmatch in scene_matches:
             keypointmatch.computeKeypointPointersFromMatchingKeypoint(slice_keypoints[ref_keypoint_index])
@@ -417,10 +417,10 @@ def testMatching(input_scene, marked_area_start, marked_area_end):
                     thickness=3)
             cv.circle(input_scene, (int(round(keypoint.pointing_point[1])), int(round(keypoint.pointing_point[0]))), 7,
                       color=(128, 178, 194), thickness=-1)
-        break
-    cv.imshow('OUR Marked keypoints', input_scene)
 
+    return input_scene
 
+"""
 def testMatchingOpenCV(marked_area_start, marked_area_end):
     # Picture keypoints
     input_pic = cv.imread('TestInput/candlelightsOnVaryingBackground.jpg')
@@ -487,6 +487,7 @@ if __name__ == "__main__":
     input_names = []
     input_slices =[[(581,477),(642,950)],[(296, 393), (404, 497)], [(234, 285), (328, 384)],[(317,827),(640,1006)],[(589,379),(864,578)],[(329,497),(405,577)], [(174, 328), (234, 387)],[(505,441),(580,524)],[(271,305),(297,328)],[(698,348),(735,378)],[(224,310),(311,366)],[(390,216),(474,355)],[(195,227),(344,396)],[(650,297),(677,328)],[(238,214),(275,260)],[(435,530),(527,872)],[(554,26),(712,120)],[(494,176),(558,339)],[(480,340),(540,407)],[(280,597),(636,790)],[(416,202),(559,344)],[(402,323),(479,450)],[(257,521),(552,700)],[(260,550),(525,874)],[(397,278),(422,311)],[(322,346),(392,420)],[(497,272),(589,333)],[(451,616),(659,856)],[(295,196),(381,280)],[(371,178),(509,323)],[(335,93),(522,282)], [(953, 1089), (1426, 1410)],[(421,742),(650,878)],[(336,290),(583,317)],[(1342,1831),(1627,2127)],[(562,2518),(845,2821)],[(1360,1681),(1951,2294)]]
 
+    images =[]
     for file in os.listdir(input_directory):
         if file.endswith(".jpg"):
             input_images.append(cv.imread(input_directory + r"\\" + file))
@@ -495,13 +496,17 @@ if __name__ == "__main__":
     for i, (in_image, in_slice) in enumerate(zip(input_images, input_slices)):
         input_images[i], input_slices[i] = ensureInputPictureIsCorrectSize(in_image, in_slice)
 
-    for i, (input_scene, input_name, input_slice) in enumerate(zip(input_images, input_names, input_slices)):
-        jule_hygge = ['🎅', '🎄', '🤶', '💝', '🎇']
-        random_index = random.randrange(0,len(jule_hygge))
-        print(f'Computing image: {i+1} of {len(input_images)} {jule_hygge[random_index]}')
-        main(input_scene, input_name, input_slice[0], input_slice[1], color_hist_threshold=950)
-        mainCV(input_scene, input_name, input_slice[0], input_slice[1], color_hist_threshold=950)
-
-    print(f'~~~ TIMER ENDED: TOTAL TIME = {time.time() - startTime} s ~~~')
+    output = testMatching(input_images[1],input_slices[1][0],input_slices[1][1])
+    cv.imshow("dik", output)
+    # for i, (input_scene, input_name, input_slice) in enumerate(zip(input_images, input_names, input_slices)):
+    #     jule_hygge = ['🎅', '🎄', '🤶', '💝', '🎇']
+    #     random_index = random.randrange(0,len(jule_hygge))
+    #     print(f'Computing image: {i+1} of {len(input_images)} {jule_hygge[random_index]}')
+    #     images.append(testMatching(input_scene,input_slice[0],input_slice[1]))
+    #     main(input_scene, input_name, input_slice[0], input_slice[1], color_hist_threshold=950)
+    #     mainCV(input_scene, input_name, input_slice[0], input_slice[1], color_hist_threshold=950)
+    # for i, image in enumerate(images):
+    #     cv.imshow(f'{i}', image)
+    # print(f'~~~ TIMER ENDED: TOTAL TIME = {time.time() - startTime} s ~~~')
     cv.waitKey(0)
     cv.destroyAllWindows()
