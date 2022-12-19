@@ -389,8 +389,8 @@ def computeKeypointOrientations(keypoint, current_octave, image, SD_scale_factor
 
             # Ud fra nabo-værdierne kan vi vha formlen for kvadratisk interpolation:
             # -- (https://ccrma.stanford.edu/~jos/sasp/Quadratic_Interpolation_Spectral_Peaks.html)
-            subbin_peak_index = (peak_index + (0.5 * ((left_peak_value - right_peak_value) / (left_peak_value -
-                                                      (2 * orientation_peak) + right_peak_value)))) % num_bins
+            subbin_peak_index = (peak_index + (0.5 * ((left_peak_value - right_peak_value) / left_peak_value -
+                                                      (2 * orientation_peak) + right_peak_value))) % num_bins
 
             # Ved at kende sub-bin indekset kan vi nu omregne dette til grader.
             keypoint_orientation = 360 - (subbin_peak_index * (360 / num_bins))

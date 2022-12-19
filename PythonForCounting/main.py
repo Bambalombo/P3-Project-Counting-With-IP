@@ -7,7 +7,7 @@ from Libraries import SIFT
 import time
 import copy
 import os
-
+import matplotlib.pyplot as plt
 
 def makeImagePyramid(starting_image, scale, min_width):
     """
@@ -470,6 +470,58 @@ def ensureInputPictureIsCorrectSize(scene, slice, max_size=1000):
     else:
         return scene, slice
 
+def compareDescriptors(scene):
+    greyscale_input_image = makeGrayscale(scene.copy())
+
+    keypoints = []
+
+    for p, image in enumerate(makeImagePyramid(greyscale_input_image.astype("float32"), 2, 10)):
+        # print(f'{p}: Creating DoG array ...')
+        Gaussian_images, DoG = SIFT.differenceOfGaussian(image, 1.6, 2, 5)
+
+        # print(f'{p}: Creating keypoints ...')
+        found_keypoints = SIFT.defineKeyPointsFromPixelExtrema(Gaussian_images, DoG, p, 1.6,
+                                                               2)
+        # print(f'{p}: Creating feature descriptors ...')
+        #  print(f'{p}: Checking for duplicate keypoints ...')
+
+        #  print(f'{p}:\t - keypoints found in octave {p} : {len(found_keypoints)}')
+        sorted_keypoints = SIFT.checkForDuplicateKeypoints(found_keypoints, keypoints)
+        #  print(f'{p}:\t - new keypoints found in octave {p} : {len(sorted_keypoints)}\n')
+        # SIFT.resizeKeypoints(sorted_keypoints,scale_factor)
+        keypoints.extend(SIFT.makeKeypointDescriptors(sorted_keypoints, Gaussian_images))
+
+    sift = cv.SIFT_create()
+    cv_keypoints, cv_descriptors = sift.detectAndCompute(greyscale_input_image, None)
+
+    our_descriptors_for_plot = []
+    for i, keypoint in enumerate(keypoints):
+        cv.circle(scene, (int(round(keypoint.coordinates[1])), int(round(keypoint.coordinates[0]))), 5,
+                  color=(255, 0, 0), thickness=-1)
+        if 692 < keypoint.coordinates[0] < 694 and 31 < keypoint.coordinates[1] < 33:
+            our_descriptors_for_plot.append(keypoint.descriptor)
+            print(keypoint.orientation)
+            print(keypoint.coordinates)
+            print(keypoint.descriptor)
+    cv_descriptors_for_plot =[]
+    for cvk, cvd in zip(cv_keypoints,cv_descriptors):
+        if 692 < cvk.pt[1] < 694 and 31 < cvk.pt[0] < 33:
+            cv_descriptors_for_plot.append(cvd)
+            print(cvk.angle)
+            print(cvk.pt)
+            print(cvd)
+    fig = plt.figure()
+
+    cv.drawKeypoints(scene,cv_keypoints,scene)
+    plt.subplot(4, 1, 1)
+    plt.stairs(our_descriptors_for_plot[0])
+
+    plt.subplot(4, 1, 2)
+    plt.stairs(cv_descriptors_for_plot[0])
+
+
+    plt.show()
+    cv.imshow('scene',scene)
 
 if __name__ == "__main__":
     print(f'~~~ STARTING TIMER ~~~')
@@ -486,18 +538,19 @@ if __name__ == "__main__":
     input_images = []
     input_names = []
     input_slices =[[(581,477),(642,950)],[(296, 393), (404, 497)], [(234, 285), (328, 384)],[(317,827),(640,1006)],[(589,379),(864,578)],[(329,497),(405,577)], [(174, 328), (234, 387)],[(505,441),(580,524)],[(271,305),(297,328)],[(698,348),(735,378)],[(224,310),(311,366)],[(390,216),(474,355)],[(195,227),(344,396)],[(650,297),(677,328)],[(238,214),(275,260)],[(435,530),(527,872)],[(554,26),(712,120)],[(494,176),(558,339)],[(480,340),(540,407)],[(280,597),(636,790)],[(416,202),(559,344)],[(402,323),(479,450)],[(257,521),(552,700)],[(260,550),(525,874)],[(397,278),(422,311)],[(322,346),(392,420)],[(497,272),(589,333)],[(451,616),(659,856)],[(295,196),(381,280)],[(371,178),(509,323)],[(335,93),(522,282)], [(953, 1089), (1426, 1410)],[(421,742),(650,878)],[(336,290),(583,317)],[(1342,1831),(1627,2127)],[(562,2518),(845,2821)],[(1360,1681),(1951,2294)]]
-
-    images =[]
-    for file in os.listdir(input_directory):
-        if file.endswith(".jpg"):
-            input_images.append(cv.imread(input_directory + r"\\" + file))
-            input_names.append(file)
-
-    for i, (in_image, in_slice) in enumerate(zip(input_images, input_slices)):
-        input_images[i], input_slices[i] = ensureInputPictureIsCorrectSize(in_image, in_slice)
-
-    output = testMatching(input_images[1],input_slices[1][0],input_slices[1][1])
-    cv.imshow("dik", output)
+    image = cv.imread("TestInput/candlelightsOnVaryingBackground.jpg")
+    compareDescriptors(image)
+    # images =[]
+    # for file in os.listdir(input_directory):
+    #     if file.endswith(".jpg"):
+    #         input_images.append(cv.imread(input_directory + r"\\" + file))
+    #         input_names.append(file)
+    #
+    # for i, (in_image, in_slice) in enumerate(zip(input_images, input_slices)):
+    #     input_images[i], input_slices[i] = ensureInputPictureIsCorrectSize(in_image, in_slice)
+    #
+    #
+    # cv.imshow("dik", output)
     # for i, (input_scene, input_name, input_slice) in enumerate(zip(input_images, input_names, input_slices)):
     #     jule_hygge = ['🎅', '🎄', '🤶', '💝', '🎇']
     #     random_index = random.randrange(0,len(jule_hygge))
@@ -507,6 +560,6 @@ if __name__ == "__main__":
     #     mainCV(input_scene, input_name, input_slice[0], input_slice[1], color_hist_threshold=950)
     # for i, image in enumerate(images):
     #     cv.imshow(f'{i}', image)
-    # print(f'~~~ TIMER ENDED: TOTAL TIME = {time.time() - startTime} s ~~~')
+    print(f'~~~ TIMER ENDED: TOTAL TIME = {time.time() - startTime} s ~~~')
     cv.waitKey(0)
     cv.destroyAllWindows()
