@@ -80,7 +80,6 @@ def black_top_hat_filter(input_image, kernel_size):
     kernel = cv.getStructuringElement(cv.MORPH_RECT, filter_size)
 
     # Reading the image named 'input.jpg'
-    #input_image = cv.cvtColor(input_image, cv.COLOR_BGR2GRAY)
 
     # Applying the Top-Hat operation
     tophat_img = cv.morphologyEx(input_image, cv.MORPH_BLACKHAT, kernel)

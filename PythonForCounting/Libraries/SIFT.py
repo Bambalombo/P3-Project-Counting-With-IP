@@ -420,9 +420,6 @@ def makeKeypointDescriptors(keypoints, Gaussian_images, num_bins=8, num_windows=
     keypoints_with_descriptors = []
     keypoints_outside_image = 0
 
-    #if len(keypoints) != 0:
-        #print(f'image: {Gaussian_images[1].shape}, sigma: {keypoints[0].size_sigma}, radius: {np.sqrt(2 * (int(keypoints[0].size_sigma*2)**2))}')
-
     for keypoint in keypoints:
         # Til at holde vores gradients opretter vi et 3d array. De første to pladser svarer til indicerne på vores 16
         # -- pladser i vores array.
@@ -442,7 +439,6 @@ def makeKeypointDescriptors(keypoints, Gaussian_images, num_bins=8, num_windows=
                 keypoint_y - np.sqrt(2 * (sigma_dist**2)) < 1 or \
                 keypoint_x - np.sqrt(2 * (sigma_dist**2)) < 1 or \
                 keypoint_x + np.sqrt(2 * (sigma_dist**2)) > Gaussian_images[keypoint.scale_space].shape[1]-1:
-            #print('Keypoint to close to image border')
             keypoints_outside_image += 1
             continue
         # Vi laver et loop over hver i et areal ud for vores keypoint center.

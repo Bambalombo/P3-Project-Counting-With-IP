@@ -39,7 +39,6 @@ def addborder_reflect(input_image, kernel_size):
         output = np.ones((input_height + (radius * 2), input_width + (radius * 2)), dtype=np.uint8)*255
         output_height, output_width = output.shape
 
-    #cv.imwrite("input_image.png",input_image)
 
 
 

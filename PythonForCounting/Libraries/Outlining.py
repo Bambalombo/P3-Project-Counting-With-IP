@@ -1,3 +1,5 @@
+from collections import deque
+
 import numpy as np
 import cv2 as cv
 from . import bordering as bd

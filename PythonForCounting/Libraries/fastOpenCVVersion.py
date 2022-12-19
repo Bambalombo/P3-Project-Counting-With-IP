@@ -1,4 +1,5 @@
 import numpy as np
+import cv2 as cv
 from cv2 import KeyPoint
 from . import SIFT
 

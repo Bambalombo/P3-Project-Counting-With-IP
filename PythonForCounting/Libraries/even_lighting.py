@@ -61,10 +61,8 @@ def illumination_mean_filter_2D(input_image, kernel_size=1):
     corrected_image[y,x] = original_image[y,x] - mean_filter_img[y,x] + mean(mean_filter_image)
     """
     height, width = input_image.shape
-    #output = np.zeros((height, width, channels), dtype=np.uint8) # for cv2, since image doesn't get smaller
     output = np.zeros((height-kernel_size+1, width-kernel_size+1), dtype=np.float64)
 
-    #lpf_img = cv.blur(input_image, (kernel_size, kernel_size))
     lpf_img = convolve_2D(input_image, kernel_size)
     lpf_mean = lpf_img.mean()
 
@@ -91,11 +89,9 @@ def illumination_mean_filter_BGR(input_image, kernel_size=1):
     Performs the 2D illumination correction for each color channel.
     """
     height, width, channels = input_image.shape
-    #output = np.zeros((height, width, channels), dtype=np.uint8) # for cv2, since image doesn't get smaller
     # Opretter et nyt tomt billede. Her bruges dtype=float64 for beregne værdier over 255 og under 0 undervejs
     output = np.zeros((height-kernel_size+1, width-kernel_size+1, channels), dtype=np.float64)
 
-    #lpf_img = cv.blur(input_image, (kernel_size, kernel_size))
     lpf_img = convolve_3D(input_image, kernel_size)
     lpf_mean = lpf_img.mean()
 

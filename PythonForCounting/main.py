@@ -103,9 +103,6 @@ def nonMaximumSuppression(outlines, threshold, scores=None):
         overlap_matches = np.array(overlap_matches, dtype=bool)
         overlap_area_ratio = np.where(overlap_matches, 1,
                                     overlap_area / area_of_bounding_boxes[temp_sorting_array[:last_temp_index]])
-        # overlapAreaRatio = np.where(overlapArea in areaOfBoundingBoxes[tempSortingArray[:lastTempIndex]], 1,overlapArea / areaOfBoundingBoxes[tempSortingArray[:lastTempIndex]])
-        # overlapAreaRatio = overlapArea / areaOfBoundingBoxes[tempSortingArray[:lastTempIndex]]
-
         # slet alle indexes hvor overlapratio er større end threshold
         temp_sorting_array = np.delete(temp_sorting_array,
                                      np.concatenate(([last_temp_index], np.where(overlap_area_ratio > threshold)[0])))
@@ -278,56 +275,6 @@ def mainCV(input_scene, input_file_name, slice_start, slice_end, scale_ratio=2, 
         writer_object.write(l)
     writer_object.close()
 
-"""
-def testSift():
-    # Picture
-    input_scene = cv.imread('TestInput/fyrfadslys.jpg')
-    input_scene_copy = input_scene.copy()
-    greyscale_input = makeGrayscale(input_scene.copy())
-
-    # Picture keypoints
-    sift = cv.SIFT_create()
-    input_picture_keypoints, input_picture_descriptors = sift.detectAndCompute(greyscale_input, None)
-    print(f':OpenCV SIFT input keypoints found: {len(input_picture_keypoints)}')
-
-    # img = cv.drawKeypoints(greyscaleInput, input_picture_keypoints, input_picture)
-    dist_array = []
-    print(f'Drawing found picture keypoints ({len(input_picture_keypoints)})...')
-    # for user_descriptor, user_keypoint in zip(marked_area_descriptors, marked_area_keypoints):
-    #     y1 = 80
-    #     y2 = 130
-    #     x1 = 60
-    #     x2 = 110
-    #     if y1 < user_keypoint.pt[1] < y2 and x1 < user_keypoint.pt[0] < x2:
-    #         cv.circle(input_slice,
-    #                   (int(round(user_keypoint.pt[0]) * 2), int(round(user_keypoint.pt[1]) * 2)), 3,
-    #                   color=(0, 255, 0), thickness=-1)
-    #
-    #         for image_descriptor, image_keypoint in zip(input_picture_descriptors, input_picture_keypoints):
-    #             dist = np.linalg.norm(user_descriptor - image_descriptor)
-    #             dist_array.append(dist)
-    #             if dist < 300:
-    #                 cv.circle(input_scene2,
-    #                           (int(round(image_keypoint.pt[0]) * 2), int(round(image_keypoint.pt[1]) * 2)),
-    #                           5, color=(255, 255, 0), thickness=-1)
-    #             else:
-    #                 # y1 = 430
-    #                 # y2 = 480
-    #                 # x1 = 610
-    #                 # x2 = 660
-    #                 # cv.rectangle(inputPicture2,(x1,y1),(x2,y2),(0,0,255),2)
-    #                 cv.circle(input_scene2,
-    #                           (int(round(image_keypoint.pt[0]) * 2), int(round(image_keypoint.pt[1]) * 2)),
-    #                           3, color=(0, 0, 255), thickness=-1)
-    #                 # if y1 < keypoint.pt[0] < y2 and x1 < keypoint.pt[1] < x2: cv.circle(inputPicture2, (int(round(
-    #                 # keypoint.pt[1])),int(round(keypoint.pt[0]))), 3, color=(0, 255, 255),thickness=-1) print(
-    #                 # keypoint.descriptor) picture_marked.append(keypoint.descriptor)
-    #
-    # print(f'average dist SIFT: {np.median(dist_array)}')
-    cv.drawKeypoints(input_scene_copy,input_picture_keypoints,input_scene_copy)
-    cv.imshow('SIFT Picture keypoints', input_scene_copy)
-    # cv.imshow('sift',img)
-"""
 
 
 def computeKeypointsWithDescriptorsFromImage(greyscale_input_image, slice_start, slice_end, scale_factor=2.0, standard_deviation=1.6):
@@ -335,18 +282,13 @@ def computeKeypointsWithDescriptorsFromImage(greyscale_input_image, slice_start,
     keypoints_slice = []
 
     for p, image in enumerate(makeImagePyramid(greyscale_input_image.astype("float32"), scale_factor, 10)):
-        #print(f'{p}: Creating DoG array ...')
+
         Gaussian_images, DoG = SIFT.differenceOfGaussian(image, standard_deviation, scale_factor, 5)
 
-       # print(f'{p}: Creating keypoints ...')
         found_keypoints = SIFT.defineKeyPointsFromPixelExtrema(Gaussian_images, DoG, p, standard_deviation, scale_factor)
-       # print(f'{p}: Creating feature descriptors ...')
-      #  print(f'{p}: Checking for duplicate keypoints ...')
 
-      #  print(f'{p}:\t - keypoints found in octave {p} : {len(found_keypoints)}')
         sorted_keypoints = SIFT.checkForDuplicateKeypoints(found_keypoints, keypoints)
-      #  print(f'{p}:\t - new keypoints found in octave {p} : {len(sorted_keypoints)}\n')
-        #SIFT.resizeKeypoints(sorted_keypoints,scale_factor)
+
         keypoints.extend(SIFT.makeKeypointDescriptors(sorted_keypoints, Gaussian_images))
 
     for keypoint in keypoints:
@@ -356,105 +298,6 @@ def computeKeypointsWithDescriptorsFromImage(greyscale_input_image, slice_start,
     return keypoints, keypoints_slice
 
 
-"""
-def expandMarkedArea(starting_coordinates, end_coordinates, input_picture):
-    height = end_coordinates[0] - starting_coordinates[0]
-    width = end_coordinates[1] - starting_coordinates[1]
-    if 0 <= starting_coordinates[0] - height and end_coordinates[0] + height < input_picture.shape[0] \
-            and 0 <= starting_coordinates[1] - width and end_coordinates[1] + width < input_picture.shape[1]:
-        return input_picture[starting_coordinates[0] - height: end_coordinates[0] + height + 1,
-               starting_coordinates[1] - width: end_coordinates[1] + width + 1].copy()
-    else:
-        return input_picture[starting_coordinates[0]:end_coordinates[0],
-               starting_coordinates[1]:end_coordinates[1]].copy()
-
-
-def discardKeypointsOutsideMarkedArea(keypoints: [KeyPoint], starting_coordinates, end_coordinates):
-    new_keypoints = []
-    height = end_coordinates[0] - starting_coordinates[0]
-    width = end_coordinates[1] - starting_coordinates[1]
-    for keypoint in keypoints:
-        if height < keypoint.coordinates[0] < height * 2 and width < keypoint.coordinates[1] < width * 2:
-            new_keypoints.append(keypoint)
-    return new_keypoints
-
-
-def discardKeypointsOutsideMarkedAreaOpenCV(descriptors, keypoints: [KeyPoint], starting_coordinates, end_coordinates):
-    new_keypoints = []
-    height = end_coordinates[0] - starting_coordinates[0]
-    width = end_coordinates[1] - starting_coordinates[1]
-    for keypoint in keypoints:
-        if height < keypoint.pt[0] < height * 2 and width < keypoint.pt[1] < width * 2:
-            new_keypoints.append(keypoint)
-    return new_keypoints
-
-def testMatching(input_scene, marked_area_start, marked_area_end):
-    # Picture keypoints
-    input_scene = input_scene.copy()
-    greyscale_scene = makeGrayscale(input_scene.copy())
-    print(f'Finding keypoints in full image:')
-    scene_keypoints, slice_keypoints = computeKeypointsWithDescriptorsFromImage(greyscale_scene, marked_area_start,marked_area_end)
-    # Slice keypoints
-    if len(slice_keypoints) == 0:
-        print("no keypoints found in marked area")
-        return None
-    for keypoint in slice_keypoints:
-        keypoint.computeKeypointPointersInMarkedImage((0, 0), (marked_area_end[0]-marked_area_start[0], marked_area_end[1] - marked_area_start[1]))
-
-    matches = SIFT.matchDescriptors(slice_keypoints, scene_keypoints)
-    for ref_keypoint_index, scene_matches in enumerate(matches):
-        for keypointmatch in scene_matches:
-            keypointmatch.computeKeypointPointersFromMatchingKeypoint(slice_keypoints[ref_keypoint_index])
-
-    for scene_matches in matches:
-        for keypoint in scene_matches:
-            cv.circle(input_scene, (int(round(keypoint.coordinates[1])), int(round(keypoint.coordinates[0]))), 5,
-                      color=(255, 0, 0), thickness=-1)
-            cv.line(input_scene, (int(round(keypoint.coordinates[1])), int(round(keypoint.coordinates[0]))),
-                    (int(round(keypoint.pointing_point[1])), int(round(keypoint.pointing_point[0]))), (0, 0, 0),
-                    thickness=3)
-            cv.circle(input_scene, (int(round(keypoint.pointing_point[1])), int(round(keypoint.pointing_point[0]))), 7,
-                      color=(128, 178, 194), thickness=-1)
-        break
-    cv.imshow('OUR Marked keypoints', input_scene)
-
-
-def testMatchingOpenCV(marked_area_start, marked_area_end):
-    # Picture keypoints
-    input_pic = cv.imread('TestInput/candlelightsOnVaryingBackground.jpg')
-    input_pic = cv.resize(input_pic, (0, 0), fx=2, fy=2)
-    greyscale_scene = makeGrayscale(input_pic.copy())
-
-    print(f'Finding keypoints in full image:')
-    sift = cv.SIFT_create()
-    scene_keypoints, scene_descriptors = sift.detectAndCompute(greyscale_scene, None)
-
-    # User area keypoints
-    input_slice = expandMarkedArea(marked_area_start, marked_area_end, input_pic)
-    greyscale_slice = makeGrayscale(input_slice.copy())
-    print(f'Finding keypoints in marked area:')
-    expanded_slice_keypoints, expanded_slice_descriptors = sift.detectAndCompute(greyscale_slice, None)
-    marked_slice_keypoints = discardKeypointsOutsideMarkedArea(expanded_slice_keypoints, marked_area_start, marked_area_end)
-
-    # Vi opretter nogle pointers for hvert keypoint i marked image
-    keypoint_pointers = []
-    for keypoint in marked_slice_keypoints:
-        x, y = (keypoint.pt[0], keypoint.pt[1])
-
-        center_y = int((keypoint.pt[1] - keypoint.pt[1]) / 2)
-        center_x = int((keypoint.pt[0] - keypoint.pt[0]) / 2)
-
-        pointing_point = (center_y, center_x)
-        pointing_length = np.sqrt((center_y - y) ** 2 + (center_x - x) ** 2)# / self.image_scale
-        pointing_angle = (np.rad2deg(np.arctan2(center_y - y, center_x - x)) - keypoint.orientation) % 360
-
-        keypoint_pointers.append([pointing_point,pointing_length,pointing_angle])
-
-    #matches = SIFT.matchDescriptors(marked_slice)
-
-def openCVImplementation(image,slice_start,slice_end):
-    openCVpipeline.findObjectsInImage(image,slice_start,slice_end)
-"""
 
 
 def ensureInputPictureIsCorrectSize(scene, slice, max_size=1000):
